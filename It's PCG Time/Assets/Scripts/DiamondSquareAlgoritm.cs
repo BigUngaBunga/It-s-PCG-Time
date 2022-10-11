@@ -29,7 +29,7 @@ public class DiamondSquareAlgorithm
     {
         size = (int)Mathf.Pow(2, sizeValue) + 1;
         Debug.Log("Size: " + size + " sizeValue: " + sizeValue);
-        Debug.Log("Initial amplitude: " + amplitude);
+        //Debug.Log("Initial amplitude: " + amplitude);
         this.roughness = roughness;
         this.amplitude = amplitude;
         heightMap = new float[size, size];
@@ -63,7 +63,7 @@ public class DiamondSquareAlgorithm
             if (lastWasSquare == point.calculateDiamond)
             {
                 amplitude *= Mathf.Pow(2f, -roughness);
-                Debug.Log("New amplitude is: " + amplitude);
+                //Debug.Log("New amplitude is: " + amplitude);
             }
                 
 
