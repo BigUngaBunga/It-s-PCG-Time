@@ -1,10 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using System.Drawing;
-using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class DiamondSquareAlgorithm
 {
@@ -12,7 +8,7 @@ public class DiamondSquareAlgorithm
     private int size;
     private float roughness;
     private float amplitude;
-    private float RandomAmplitude => Random.value * amplitude;
+    private float RandomAmplitude => (Random.value -0.5f) * 2f * amplitude;
     private float Width => heightMap.GetLength(0);
     private float Height => heightMap.GetLength(1);
 
@@ -33,6 +29,7 @@ public class DiamondSquareAlgorithm
     {
         size = (int)Mathf.Pow(2, sizeValue) + 1;
         Debug.Log("Size: " + size + " sizeValue: " + sizeValue);
+        Debug.Log("Initial amplitude: " + amplitude);
         this.roughness = roughness;
         this.amplitude = amplitude;
         heightMap = new float[size, size];
@@ -64,7 +61,11 @@ public class DiamondSquareAlgorithm
             var point = calculationPoints.Dequeue();
 
             if (lastWasSquare == point.calculateDiamond)
+            {
                 amplitude *= Mathf.Pow(2f, -roughness);
+                Debug.Log("New amplitude is: " + amplitude);
+            }
+                
 
             if (lastWasSquare && point.calculateDiamond)
                 lenghtToCorners /= 2;
