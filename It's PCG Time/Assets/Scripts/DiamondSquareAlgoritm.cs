@@ -28,8 +28,6 @@ public class DiamondSquareAlgorithm
     public float[,] Generate(int sizeValue, int seed, float amplitude, float roughness)
     {
         size = (int)Mathf.Pow(2, sizeValue) + 1;
-        Debug.Log("Size: " + size + " sizeValue: " + sizeValue);
-        //Debug.Log("Initial amplitude: " + amplitude);
         this.roughness = roughness;
         this.amplitude = amplitude;
         heightMap = new float[size, size];
@@ -61,11 +59,8 @@ public class DiamondSquareAlgorithm
             var point = calculationPoints.Dequeue();
 
             if (lastWasSquare == point.calculateDiamond)
-            {
                 amplitude *= Mathf.Pow(2f, -roughness);
-                //Debug.Log("New amplitude is: " + amplitude);
-            }
-                
+
 
             if (lastWasSquare && point.calculateDiamond)
                 lenghtToCorners /= 2;
@@ -110,7 +105,8 @@ public class DiamondSquareAlgorithm
 
     private void CalculateDiamond(Point point, int lenghtToCorners)
     {
-        float height = GetHeightAt(point.X + lenghtToCorners, point.Y + lenghtToCorners);
+        float height = 0;
+        height += GetHeightAt(point.X + lenghtToCorners, point.Y + lenghtToCorners);
         height += GetHeightAt(point.X + lenghtToCorners, point.Y - lenghtToCorners);
         height += GetHeightAt(point.X - lenghtToCorners, point.Y + lenghtToCorners);
         height += GetHeightAt(point.X - lenghtToCorners, point.Y - lenghtToCorners);

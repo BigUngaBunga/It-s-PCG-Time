@@ -1,17 +1,20 @@
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class HeightMapGenerator : MonoBehaviour
 {
     enum GenerationMethod { DiamondSquare, PerlinNoise, Debug}
-    enum InterpolationMethod { Bilinear, Bicubic, None}
+    public enum InterpolationMethod { Bilinear, Bicubic, Cosine, None}
+    public enum DetailType { Factor, Map}
+
     [Header("Interpolation")]
     [SerializeField] private InterpolationMethod interpolation;
+    [SerializeField] private DetailType detailType;
     [Range(1, 10)]
     [SerializeField] private int interpolationDetail = 1;
-    [SerializeField] private bool keepSizeConstant;
-    [SerializeField] private float mapWidth, mapHeight;
+    [SerializeField] private float interpolationWidth, interpolationHeight;
 
     [Header("Generation")]
     [SerializeField] private GenerationMethod generation;
@@ -36,6 +39,7 @@ public class HeightMapGenerator : MonoBehaviour
     private float[,] heightMap;
     private DiamondSquareAlgorithm diamondSquare;
     private PerlinNoise perlinNoise;
+    private Interpolator interpolator;
 
     private int HeightMapWidth => heightMap.GetLength(0);
     private int HeightMapHeight => heightMap.GetLength(1);
@@ -61,6 +65,7 @@ public class HeightMapGenerator : MonoBehaviour
         meshFilter = GetComponent<MeshFilter>();
         diamondSquare = new DiamondSquareAlgorithm();
         perlinNoise = new PerlinNoise();
+        interpolator = new Interpolator();
         GenerateMap();
     }
 
@@ -73,70 +78,14 @@ public class HeightMapGenerator : MonoBehaviour
     private void GenerateMap()
     {
         heightMap = GenerateHeightMap();
-        CreateMesh(InterpolateHeightMap());
-    }
-
-    //TODO prova köra först x-led sedan y-led
-    private float[,] InterpolateHeightMap()
-    {
-        float[,] interpolation = new float[heightMap.GetLength(0) * interpolationDetail, heightMap.GetLength(1) * interpolationDetail];
-
-        int width, height;
-        float dWidth, dHeight;
-        float dX, dY;
-
-        if (this.interpolation == InterpolationMethod.None)
-            return heightMap;
-
-        dWidth = interpolation.GetLength(0) / (float)(heightMap.GetLength(0) - 1);
-        dHeight = interpolation.GetLength(1) / (float)(heightMap.GetLength(1) - 1);
-
-        for (int x = 0; x < interpolation.GetLength(0); x++)
-        {
-            width = GetWidth(x);
-            dX = x / dWidth - width;
-            if(dX > 1f)
-                Debug.Log("dX value is too high: " + dX);
-            for (int y = 0; y < interpolation.GetLength(1); y++)
-            {
-                height = GetHeight(y);
-                dY = y / dHeight - height;
-                if (this.interpolation == InterpolationMethod.Bicubic)
-                {
-                    dX = -2f * Mathf.Pow(dX, 3) + 3 * Mathf.Pow(dX, 2);
-                    dY = -2f * Mathf.Pow(dY, 3) + 3 * Mathf.Pow(dY, 2);
-                }
-                interpolation[y, x] = GetInterpolation(width, height, dX, dY);
-            }
-        }
-        return interpolation;
-
-        int GetWidth(int x) => (int)(x / dWidth);
-        int GetHeight(int y) => (int)(y / dHeight);
-    }
-
-    float GetInterpolation(int width, int height, float dX, float dY)
-    {
-        int nextWidth = Mathf.Min(width + 1, heightMap.GetLength(0) - 1);
-        int nextHeight = Mathf.Min(height + 1, heightMap.GetLength(1) - 1);
-
-        float value = 0;
-
-        value += (heightMap[width, height] * (1f - dX) + heightMap[nextWidth, height] * dX) * (1f - dY);
-        value += (heightMap[width, nextHeight] * (1f - dX) + heightMap[nextWidth, nextHeight] * dX) * dY;
-        value += (heightMap[width, height] * (1f - dY) + heightMap[width, nextHeight] * dY) * (1f - dX);
-        value += (heightMap[nextWidth, height] * (1f - dY) + heightMap[nextWidth, nextHeight] * dY) * dX;
-        
-        value /= 2f;
-        return value;
+        interpolator.PrepareInterpolation(interpolationDetail, interpolationWidth, interpolationHeight);
+        CreateMesh(interpolator.Interpolate(interpolation, detailType, heightMap));
     }
 
     private void CreateMesh(float[,] heightMap)
     {
-        Debug.Log("Creating mesh");
         mesh = new Mesh();
         mesh.SetVertices(GetVertecies(heightMap, out Vector2[] uv));
-        Debug.Log("Generating triangles");
         var triangles = GetTriangles(heightMap);
         mesh.triangles = triangles;
         meshFilter.mesh = mesh;
@@ -149,13 +98,8 @@ public class HeightMapGenerator : MonoBehaviour
         List<Vector2> uvs = new List<Vector2>();
         Vector2 scale;
         Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        if (keepSizeConstant)
-             scale = new Vector2(HeightMapWidth / (float)size.X, HeightMapHeight / (float)size.Y);
-        else
-            scale = new Vector2(mapWidth / size.X, mapHeight / size.Y);
+        scale = new Vector2(HeightMapWidth / (float)size.X, HeightMapHeight / (float)size.Y);
 
-        Debug.Log("Size of the height map: " + size + " scale of the map: " + scale);
-        Debug.Log("Original width: " + HeightMapWidth + " Original height: " + HeightMapHeight);
         for (int x = 0; x < size.X; x++)
             for (int y = 0; y < size.Y; y++)
             {
@@ -175,10 +119,10 @@ public class HeightMapGenerator : MonoBehaviour
         Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
         for (int i = 0; i < heightMap.Length; i++)
         {
-            if (i % size.X == size.X - 1 || i >= heightMap.Length - heightMap.GetLength(1))
+            if (i % size.Y == size.Y - 1 || i >= heightMap.Length - size.Y - 1)
                 continue;
 
-            quads.Add(new Quad(i, i + 1, i + heightMap.GetLength(1), i + heightMap.GetLength(1) + 1));
+            quads.Add(new Quad(i, i + 1, i + size.Y, i + size.Y + 1));
         }
 
         List<int> triangles = new List<int>();

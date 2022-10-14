@@ -330,16 +330,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 956443a131965da4ab36d6c475fcc833, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interpolation: 1
-  interpolationDetail: 4
-  interpolateFourCorners: 1
-  keepSizeConstant: 1
-  mapWidth: 50
-  mapHeight: 50
+  interpolation: 0
+  detailType: 0
+  interpolationDetail: 2
+  interpolationWidth: 25
+  interpolationHeight: 20
   generation: 0
   randomSeed: 1
   seed: 
   amplitude: 0.56
+  keepSizeConstant: 1
+  mapWidth: 50
+  mapHeight: 50
   roughness: 0.1
   size: 3
   width: 51
