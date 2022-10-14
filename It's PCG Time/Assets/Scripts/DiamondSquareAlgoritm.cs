@@ -35,6 +35,7 @@ public class DiamondSquareAlgorithm
 
         FillCorners();
         FillSquare();
+
         return heightMap;
     }
 

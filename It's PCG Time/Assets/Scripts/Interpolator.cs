@@ -36,7 +36,7 @@ public class Interpolator : MonoBehaviour
         if (detail == Detail.Factor)
             interpolation = new float[heightMap.GetLength(0) * interpolationDetail, heightMap.GetLength(1) * interpolationDetail];
         else if (detail == Detail.Map)
-            interpolation = new float[(int)Mathf.Max(heightMap.GetLength(0), width), (int)Mathf.Max(heightMap.GetLength(1), height)];
+            interpolation = new float[Mathf.Max(heightMap.GetLength(0), (int)width), Mathf.Max(heightMap.GetLength(1), (int)height)];
         else
             interpolation = new float[heightMap.GetLength(0), heightMap.GetLength(1)];
 

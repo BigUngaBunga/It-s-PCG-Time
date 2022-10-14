@@ -13,8 +13,8 @@ public class HeightMapGenerator : MonoBehaviour
     [SerializeField] private InterpolationMethod interpolation;
     [SerializeField] private DetailType detailType;
     [Range(1, 10)]
-    [SerializeField] private int interpolationDetail = 1;
-    [SerializeField] private float interpolationWidth, interpolationHeight;
+    [SerializeField] private int detailFactor = 1;
+    [SerializeField] private float targetWidth, targetHeight;
 
     [Header("Generation")]
     [SerializeField] private GenerationMethod generation;
@@ -44,22 +44,6 @@ public class HeightMapGenerator : MonoBehaviour
     private int HeightMapWidth => heightMap.GetLength(0);
     private int HeightMapHeight => heightMap.GetLength(1);
 
-    public float[,] GenerateHeightMap()
-    {
-        if (randomSeed)
-            seed = Random.Range(int.MinValue, int.MaxValue).ToString();
-
-        if(!int.TryParse(seed, out int seedValue))
-            seedValue = seed.GetHashCode();
-
-        return generation switch
-        {
-            GenerationMethod.PerlinNoise => perlinNoise.Generate(height, width, seedValue),
-            GenerationMethod.DiamondSquare => diamondSquare.Generate(size, seedValue, amplitude, roughness),
-            _ => new float[3, 3],
-        };
-    }
-
     private void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
@@ -75,11 +59,35 @@ public class HeightMapGenerator : MonoBehaviour
             GenerateMap();
     }
 
+
+    public float[,] GenerateHeightMap()
+    {
+        if (randomSeed)
+            seed = Random.Range(int.MinValue, int.MaxValue).ToString();
+
+        if (!int.TryParse(seed, out int seedValue))
+            seedValue = seed.GetHashCode();
+
+        switch (generation)
+        {
+            case GenerationMethod.DiamondSquare:
+                heightMap = diamondSquare.Generate(size, seedValue, amplitude, roughness);
+                interpolator.PrepareInterpolation(detailFactor, targetWidth, targetHeight);
+                return interpolator.Interpolate(interpolation, detailType, heightMap);
+            case GenerationMethod.PerlinNoise:
+                perlinNoise.SetHeightMapTarget(targetWidth, targetHeight, detailFactor, detailType.Equals(DetailType.Factor));
+                return perlinNoise.Generate(height, width, seedValue);
+            case GenerationMethod.Debug:
+            default:
+                return new float[3, 3];
+        }
+
+    }
+
     private void GenerateMap()
     {
         heightMap = GenerateHeightMap();
-        interpolator.PrepareInterpolation(interpolationDetail, interpolationWidth, interpolationHeight);
-        CreateMesh(interpolator.Interpolate(interpolation, detailType, heightMap));
+        CreateMesh(heightMap);
     }
 
     private void CreateMesh(float[,] heightMap)
