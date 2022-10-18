@@ -6,27 +6,21 @@ using UnityEngine;
 public class HeightMapGenerator : MonoBehaviour
 {
     enum GenerationMethod { DiamondSquare, PerlinNoise, ReversePerlin, Debug}
-    public enum InterpolationMethod { Bilinear, Bicubic, Cosine, None}
 
     [Header("Generation")]
     [SerializeField] private GenerationMethod method;
     [SerializeField] private bool randomSeed = true;
     [SerializeField] private string seed;
+    [Range(0.1f, 5f)]
     [SerializeField] private float amplitude;
-
-    [Header("Interpolation")]
-    [SerializeField] private InterpolationMethod interpolation;
-    [Range(1, 10)]
-    [SerializeField] private int detailFactor = 1;
 
     [Header("Mesh")]
     [SerializeField] private Vector2 meshSize;
 
-
     [Header("Diamond Square")]
     [Range(0, 0.25f)]
     [SerializeField] private float roughness;
-    [Range(1,10)]
+    [Range(1,6)]
     [SerializeField] private int size;
 
     [Header("Perlin noise")]
@@ -49,9 +43,10 @@ public class HeightMapGenerator : MonoBehaviour
     private void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
+        interpolator = GetComponent<Interpolator>();
         diamondSquare = new DiamondSquareAlgorithm();
         perlinNoise = new PerlinNoise();
-        interpolator = new Interpolator();
+        //interpolator = new Interpolator();
         GenerateMap();
     }
 
@@ -74,13 +69,13 @@ public class HeightMapGenerator : MonoBehaviour
         switch (method)
         {
             case GenerationMethod.DiamondSquare:
-                adjustedMeshSize = meshSize * size;
                 heightMap = diamondSquare.Generate(size, seedValue, amplitude, roughness);
-                return interpolator.Interpolate(interpolation, detailFactor, heightMap);
+                adjustedMeshSize = meshSize * heightMap.GetLength(0);
+                return interpolator.Interpolate(heightMap);
             case GenerationMethod.PerlinNoise:
                 adjustedMeshSize = new Vector2(meshSize.x * width, meshSize.y * height);
                 heightMap = perlinNoise.Generate(width, height, seedValue, amplitude);
-                return interpolator.Interpolate(interpolation, detailFactor, heightMap);
+                return interpolator.Interpolate(heightMap);
             case GenerationMethod.Debug:
             default:
                 return new float[3, 3];

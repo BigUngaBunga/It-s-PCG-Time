@@ -1,11 +1,14 @@
 using UnityEngine;
-using Method = HeightMapGenerator.InterpolationMethod;
 
 public class Interpolator : MonoBehaviour
 {
-    private Method method;
+    public enum InterpolationMethod { Bilinear, Bicubic, Cosine, None }
+
+    [SerializeField] private InterpolationMethod method;
+    [Range(1, 10)]
+    [SerializeField] private int detail = 1;
+
     private float[,] heightMap;
-    private int detail;
     private float width, height;
 
     public Interpolator()
@@ -13,11 +16,9 @@ public class Interpolator : MonoBehaviour
 
     }
 
-    public float[,] Interpolate(Method method, int detail, float[,] heightMap)
+    public float[,] Interpolate(float[,] heightMap)
     {
-        this.method = method;
         this.heightMap = heightMap;
-        this.detail = detail;
         return InterpolateHeightMap();
     }
 
@@ -29,7 +30,7 @@ public class Interpolator : MonoBehaviour
         float dWidth, dHeight;
         float dX, dY;
 
-        if (method == Method.None)
+        if (method == InterpolationMethod.None)
             return heightMap;
 
         dWidth = interpolation.GetLength(0) / (float)(heightMap.GetLength(0) - 1);
@@ -74,12 +75,12 @@ public class Interpolator : MonoBehaviour
         var firstHeights = ValuesInX(x, y);
         var secondHeights = ValuesInX(x, y + 1);
 
-        if (method == Method.Bicubic)
+        if (method == InterpolationMethod.Bicubic)
         {
             value += InterpolateCubic(firstHeights[0], firstHeights[1], firstHeights[2], firstHeights[3], dX) * (1f - dY);
             value += InterpolateCubic(secondHeights[0], secondHeights[1], secondHeights[2], secondHeights[3], dX) * dY;
         }
-        else if (method == Method.Cosine)
+        else if (method == InterpolationMethod.Cosine)
         {
             value += InterpolateCosine(firstHeights[1], firstHeights[2], dX) * (1f - dY);
             value += InterpolateCosine(secondHeights[1], secondHeights[2], dX) * dY;
@@ -115,12 +116,12 @@ public class Interpolator : MonoBehaviour
         var firstHeights = ValuesInY(x, y);
         var secondHeights = ValuesInY(x + 1, y);
 
-        if (method == Method.Bicubic)
+        if (method == InterpolationMethod.Bicubic)
         {
             value += InterpolateCubic(firstHeights[0], firstHeights[1], firstHeights[2], firstHeights[3], dY) * (1f - dX);
             value += InterpolateCubic(secondHeights[0], secondHeights[1], secondHeights[2], secondHeights[3], dY) * dX;
         }
-        else if (method == Method.Cosine)
+        else if (method == InterpolationMethod.Cosine)
         {
             value += InterpolateCosine(firstHeights[1], firstHeights[2], dY) * (1f - dX);
             value += InterpolateCosine(secondHeights[1], secondHeights[2], dY) * dX;

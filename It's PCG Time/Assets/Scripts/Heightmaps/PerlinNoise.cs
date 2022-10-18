@@ -79,10 +79,13 @@ public class PerlinNoise
             return float.NaN;
 
         float height = 0;
-        Vector2 position = new Vector2(xPosition, yPosition);
+
+        Vector2 position = new Vector2(Random.Range(0f, 1f), Random.Range(0f, 1f));
+
+        //Vector2 position = new Vector2(xPosition - (int)xPosition, yPosition - (int)yPosition);
         for (int x = 0; x < corners.GetLength(0); x++)
             for (int y = 0; y < corners.GetLength(1); y++)
-                height += Vector2.Dot(position - corners[x, y], corners[x, y] * amplitude);
-        return height / 4f;
+                height += Vector2.Dot(position - corners[x, y], corners[x, y]) * amplitude;
+        return height;
     }
 }
