@@ -1,13 +1,11 @@
 using UnityEngine;
 using Method = HeightMapGenerator.InterpolationMethod;
-using Detail = HeightMapGenerator.DetailType;
 
 public class Interpolator : MonoBehaviour
 {
     private Method method;
-    private Detail detail;
     private float[,] heightMap;
-    private int interpolationDetail;
+    private int detail;
     private float width, height;
 
     public Interpolator()
@@ -15,14 +13,7 @@ public class Interpolator : MonoBehaviour
 
     }
 
-    public void PrepareInterpolation(int interpolationDetail, float width, float height)
-    {
-        this.interpolationDetail = interpolationDetail;
-        this.width = width;
-        this.height = height;
-    }
-
-    public float[,] Interpolate(Method method, Detail detail, float[,] heightMap)
+    public float[,] Interpolate(Method method, int detail, float[,] heightMap)
     {
         this.method = method;
         this.heightMap = heightMap;
@@ -32,14 +23,7 @@ public class Interpolator : MonoBehaviour
 
     private float[,] InterpolateHeightMap()
     {
-        float[,] interpolation;
-        if (detail == Detail.Factor)
-            interpolation = new float[heightMap.GetLength(0) * interpolationDetail, heightMap.GetLength(1) * interpolationDetail];
-        else if (detail == Detail.Map)
-            interpolation = new float[Mathf.Max(heightMap.GetLength(0), (int)width), Mathf.Max(heightMap.GetLength(1), (int)height)];
-        else
-            interpolation = new float[heightMap.GetLength(0), heightMap.GetLength(1)];
-
+        float[,] interpolation = new float[heightMap.GetLength(0) * detail, heightMap.GetLength(1) * detail];
 
         int interpolatedX, interpolatedY;
         float dWidth, dHeight;

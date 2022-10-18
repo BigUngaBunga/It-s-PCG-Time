@@ -5,22 +5,23 @@ using UnityEngine;
 
 public class HeightMapGenerator : MonoBehaviour
 {
-    enum GenerationMethod { DiamondSquare, PerlinNoise, Debug}
+    enum GenerationMethod { DiamondSquare, PerlinNoise, ReversePerlin, Debug}
     public enum InterpolationMethod { Bilinear, Bicubic, Cosine, None}
-    public enum DetailType { Factor, Map}
-
-    [Header("Interpolation")]
-    [SerializeField] private InterpolationMethod interpolation;
-    [SerializeField] private DetailType detailType;
-    [Range(1, 10)]
-    [SerializeField] private int detailFactor = 1;
-    [SerializeField] private float targetWidth, targetHeight;
 
     [Header("Generation")]
-    [SerializeField] private GenerationMethod generation;
+    [SerializeField] private GenerationMethod method;
     [SerializeField] private bool randomSeed = true;
     [SerializeField] private string seed;
     [SerializeField] private float amplitude;
+
+    [Header("Interpolation")]
+    [SerializeField] private InterpolationMethod interpolation;
+    [Range(1, 10)]
+    [SerializeField] private int detailFactor = 1;
+
+    [Header("Mesh")]
+    [SerializeField] private Vector2 meshSize;
+
 
     [Header("Diamond Square")]
     [Range(0, 0.25f)]
@@ -40,6 +41,7 @@ public class HeightMapGenerator : MonoBehaviour
     private DiamondSquareAlgorithm diamondSquare;
     private PerlinNoise perlinNoise;
     private Interpolator interpolator;
+    private Vector2 adjustedMeshSize;
 
     private int HeightMapWidth => heightMap.GetLength(0);
     private int HeightMapHeight => heightMap.GetLength(1);
@@ -68,15 +70,17 @@ public class HeightMapGenerator : MonoBehaviour
         if (!int.TryParse(seed, out int seedValue))
             seedValue = seed.GetHashCode();
 
-        switch (generation)
+
+        switch (method)
         {
             case GenerationMethod.DiamondSquare:
+                adjustedMeshSize = meshSize * size;
                 heightMap = diamondSquare.Generate(size, seedValue, amplitude, roughness);
-                interpolator.PrepareInterpolation(detailFactor, targetWidth, targetHeight);
-                return interpolator.Interpolate(interpolation, detailType, heightMap);
+                return interpolator.Interpolate(interpolation, detailFactor, heightMap);
             case GenerationMethod.PerlinNoise:
-                perlinNoise.SetHeightMapTarget(targetWidth, targetHeight, detailFactor, detailType.Equals(DetailType.Factor));
-                return perlinNoise.Generate(height, width, seedValue);
+                adjustedMeshSize = new Vector2(meshSize.x * width, meshSize.y * height);
+                heightMap = perlinNoise.Generate(width, height, seedValue, amplitude);
+                return interpolator.Interpolate(interpolation, detailFactor, heightMap);
             case GenerationMethod.Debug:
             default:
                 return new float[3, 3];
@@ -106,7 +110,7 @@ public class HeightMapGenerator : MonoBehaviour
         List<Vector2> uvs = new List<Vector2>();
         Vector2 scale;
         Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        scale = new Vector2(HeightMapWidth / (float)size.X, HeightMapHeight / (float)size.Y);
+        scale = new Vector2(adjustedMeshSize.x / size.X, adjustedMeshSize.y / size.Y);
 
         for (int x = 0; x < size.X; x++)
             for (int y = 0; y < size.Y; y++)

@@ -1,45 +1,34 @@
+using System.Text;
 using UnityEngine;
 
 public class PerlinNoise
 {
     private Vector2[,] gradientVectors;
     private float[,] heightMap;
+    private float amplitude;
     private int height, width;
-    private int targetHeight, targetWidth;
-    int detailFactor;
-    bool useDetailFactor;
-    private float RandomAngle => Random.Range(-Mathf.PI, Mathf.PI);
+    private float RandomAngle => Random.Range(-1f, 1f);
     private Vector2 RandomVector => new Vector2(RandomAngle, RandomAngle).normalized;
     public PerlinNoise()
     {
 
     }
 
-    public void SetHeightMapTarget(float targetWidth, float targetHeight, int detailFactor, bool useDetailFactor)
+    public float[,] Generate(int width, int height, int seed, float amplitude)
     {
-        this.targetHeight = (int)targetHeight;
-        this.targetWidth = (int)targetWidth;
-        this.detailFactor = detailFactor;
-        this.useDetailFactor = useDetailFactor;
-    }
-
-    public float[,] Generate(int height, int width, int seed)
-    {
-        this.height = height;
         this.width = width;
-        if (useDetailFactor)
-            heightMap = new float[width * detailFactor, height * detailFactor];
-        else
-            heightMap = new float[Mathf.Max(width, targetWidth), Mathf.Max(height, targetHeight)];
+        this.height = height;
+        this.amplitude = amplitude;
+        heightMap = new float[width, height];
         Random.InitState(seed);
-        RandomizeGradientVectors();
+        GetRandomGradientVectors();
         ConvertGradientToHeightMap();
         return heightMap;
     }
 
-    private void RandomizeGradientVectors()
+    private void GetRandomGradientVectors()
     {
-        gradientVectors = new Vector2[height, width];
+        gradientVectors = new Vector2[width, height];
         for (int x = 0; x < gradientVectors.GetLength(0); x++)
             for (int y = 0; y < gradientVectors.GetLength(1); y++)
                 gradientVectors[x, y] = RandomVector;
@@ -63,7 +52,7 @@ public class PerlinNoise
         static float GetPosition(int sizeOfTarget, int sizeOfSource, int sourceIndex)
         {
             float index = sourceIndex;
-            index /= (sizeOfSource - 1) * sizeOfTarget;
+            index = index / sizeOfSource * (sizeOfTarget - 1);
             return index;
         }
     }
@@ -71,7 +60,7 @@ public class PerlinNoise
     private Vector2[,] GetCornersAt(int x, int y)
     {
         Vector2[,] corners = new Vector2[2,2];
-        if (x >= 0 && x < gradientVectors.GetLength(0) && y >= 0 && y < gradientVectors.GetLength(1))
+        if (x >= 0 && x <= gradientVectors.GetLength(0) && y >= 0 && y <= gradientVectors.GetLength(1))
         {
             corners[0, 0] = gradientVectors[x, y];
             corners[1, 0] = gradientVectors[x + 1, y];
@@ -93,9 +82,7 @@ public class PerlinNoise
         Vector2 position = new Vector2(xPosition, yPosition);
         for (int x = 0; x < corners.GetLength(0); x++)
             for (int y = 0; y < corners.GetLength(1); y++)
-            {
-                height += Vector2.Dot(position - corners[x, y], corners[x, y]);
-            }
-        return height;
+                height += Vector2.Dot(position - corners[x, y], corners[x, y] * amplitude);
+        return height / 4f;
     }
 }
