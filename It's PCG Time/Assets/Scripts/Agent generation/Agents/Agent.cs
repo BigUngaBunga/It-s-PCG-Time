@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Drawing;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -5,7 +6,7 @@ using Color = UnityEngine.Color;
 
 public class Agent
 {
-    public static Point boundaries;
+    protected static AgentGenerator generator;
 
     public Color colour = Color.red;
     public bool IsActive => tokensLeft > 0;
@@ -18,8 +19,9 @@ public class Agent
         get { return direction; }
         set { direction = value.normalized; }
     }
-
-    private int tokensLeft;
+    protected Vector2 RandomDirection => new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+    protected Point bounds = new Point(generator.HeightMap.GetLength(0) - 1, generator.HeightMap.GetLength(1) - 1);
+    protected int tokensLeft;
 
     public Agent(Point position, Vector2 direction, int tokens)
     {
@@ -28,12 +30,23 @@ public class Agent
         tokensLeft = tokens;
     }
 
-    public virtual void Act(float[,] heightMap)
+    public static void UpdateGenerator(AgentGenerator newGenerator) => generator = newGenerator;
+
+
+    protected static Vector2 ToVector2(Point point) => new Vector2(point.X, point.Y);
+    protected static float Distance(Point a, Point b) => (ToVector2(a) - ToVector2(b)).magnitude;
+
+    public virtual void Act()
     {
-        
+        if (tokensLeft <= 0)
+        {
+            generator.RemoveAgent(this);
+            return;
+        }
+            
     }
 
-    protected virtual void EditMap(float[,] heightMap)
+    protected virtual void EditMap()
     {
         tokensLeft--;
     }
@@ -41,43 +54,44 @@ public class Agent
     protected virtual void Move()
     {
         position += Direction;
-        if (!IsWithinBounds())
+        if (!AgentIsWithinBounds())
             PickRandomDirection();
     }
 
-    private bool IsWithinBounds()
+    private bool AgentIsWithinBounds()
     {
-        bool withinBounds = true;
+        bool withinBounds = PointWithinBounds(position);
         if (position.x < 0)
-        {
-            withinBounds = false;
             position.x = 0;
-        }
-            
-        else if (position.x > boundaries.X)
-        {
-            withinBounds = false;
-            position.x = boundaries.X;
-        }
-            
+        else if (position.x > bounds.X)
+            position.x = bounds.X;
 
         if (position.y < 0)
-        {
-            withinBounds = false;
             position.y = 0;
-        }
-            
-        else if (position.y > boundaries.Y)
-        {
-            withinBounds = false;
-            position.y = boundaries.Y;
-        }
-            
-        
+        else if (position.y > bounds.Y)
+            position.y = bounds.Y;
+
         return withinBounds;
     }
 
-    private void PickRandomDirection() => Direction = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+    protected bool PointWithinBounds(Vector2 point) => !(point.x < 0 || point.x > bounds.X || point.y < 0 || point.y > bounds.Y);
+
+    protected bool PointWithinBounds(Point point) => PointWithinBounds(new Vector2(point.X, point.Y));
+
+    protected List<Point> GetAdjacentPoints(Point start)
+    {
+        List<Point> validPoints = new List<Point>();
+        for (int x = -1; x < 2; x++)
+            for (int y = -1; y < 2; y++)
+            {
+                Point point = new Point(x + start.X, y + start.Y);
+                if (PointWithinBounds(point))
+                    validPoints.Add(point);
+            }
+        return validPoints;
+    }
+
+    private void PickRandomDirection() => Direction = RandomDirection;
 
     public Vector3 GetPosition(float[,] heightMap, float addedHeight) => new Vector3(position.x, heightMap[Point.X, Point.Y] + addedHeight, position.y);
 }

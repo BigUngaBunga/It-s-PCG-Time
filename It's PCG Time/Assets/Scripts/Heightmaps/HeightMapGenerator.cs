@@ -29,24 +29,19 @@ public class HeightMapGenerator : MonoBehaviour
     [Min(1)]
     [SerializeField] private int height;
 
-    private MeshFilter meshFilter;
-    private Mesh mesh;
     private float[,] heightMap;
     private DiamondSquareAlgorithm diamondSquare;
     private PerlinNoise perlinNoise;
     private Interpolator interpolator;
+    private MeshGenerator meshGenerator;
     private Vector2 adjustedMeshSize;
-
-    private int HeightMapWidth => heightMap.GetLength(0);
-    private int HeightMapHeight => heightMap.GetLength(1);
 
     private void Start()
     {
-        meshFilter = GetComponent<MeshFilter>();
+        meshGenerator = gameObject.AddComponent<MeshGenerator>();
         interpolator = GetComponent<Interpolator>();
         diamondSquare = new DiamondSquareAlgorithm();
         perlinNoise = new PerlinNoise();
-        //interpolator = new Interpolator();
         GenerateMap();
     }
 
@@ -86,82 +81,6 @@ public class HeightMapGenerator : MonoBehaviour
     private void GenerateMap()
     {
         heightMap = GenerateHeightMap();
-        CreateMesh(heightMap);
-    }
-
-    private void CreateMesh(float[,] heightMap)
-    {
-        mesh = new Mesh();
-        mesh.SetVertices(GetVertecies(heightMap, out Vector2[] uv));
-        var triangles = GetTriangles(heightMap);
-        mesh.triangles = triangles;
-        meshFilter.mesh = mesh;
-        mesh.uv = uv;
-    }
-
-    private Vector3[] GetVertecies(float[,] heightMap, out Vector2[] uv)
-    {
-        List<Vector3> vertecies = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
-        Vector2 scale;
-        Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        scale = new Vector2(adjustedMeshSize.x / size.X, adjustedMeshSize.y / size.Y);
-
-        for (int x = 0; x < size.X; x++)
-            for (int y = 0; y < size.Y; y++)
-            {
-                var vertex = new Vector3((x - size.X / 2f) * scale.x , heightMap[x, y], (y - size.Y ) * scale.y);
-                vertecies.Add(vertex);
-                uvs.Add(new Vector2(vertex.x, vertex.z));
-            }
-
-        uv = uvs.ToArray();
-
-        return vertecies.ToArray();
-    }
-
-    private int[] GetTriangles(float[,] heightMap)
-    {
-        List<Quad> quads = new List<Quad>();
-        Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        for (int i = 0; i < heightMap.Length; i++)
-        {
-            if (i % size.Y == size.Y - 1 || i >= heightMap.Length - size.Y - 1)
-                continue;
-
-            quads.Add(new Quad(i, i + 1, i + size.Y, i + size.Y + 1));
-        }
-
-        List<int> triangles = new List<int>();
-        foreach (var quad in quads)
-            triangles.AddRange(quad.GetTriangles());
-        return triangles.ToArray();
-    }
-
-    public struct Quad
-    {
-        private readonly int upperLeft, upperRight, lowerLeft, lowerRight;
-
-        public Quad(int upperLeft, int upperRight, int lowerLeft, int lowerRight)
-        {
-            this.upperLeft = upperLeft;
-            this.upperRight = upperRight;
-            this.lowerLeft = lowerLeft;
-            this.lowerRight = lowerRight;
-        }
-
-        public int[] GetTriangles()
-        {
-            int[] triangles = new int[6];
-            //
-            triangles[0] = lowerLeft;
-            triangles[1] = upperLeft;
-            triangles[2] = upperRight;
-            //
-            triangles[3] = lowerLeft;
-            triangles[4] = upperRight;
-            triangles[5] = lowerRight;
-            return triangles;
-        }
+        meshGenerator.CreateMesh(heightMap, adjustedMeshSize);
     }
 }
