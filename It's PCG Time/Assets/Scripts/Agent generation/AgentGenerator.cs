@@ -29,6 +29,7 @@ public class AgentGenerator : MonoBehaviour
     [SerializeField] private float grassHeight = 0.5f;
     [SerializeField] private float beachHeight = 0;
     [SerializeField] private float underWaterHeight = -1f;
+    private float[] layerHeights => new float[] { peakHeight, mountainHeight, grassHeight, beachHeight, underWaterHeight };
 
     [Header("Agents")]
     [SerializeField] private int coastlineAgentTokens;
@@ -96,9 +97,9 @@ public class AgentGenerator : MonoBehaviour
         if (status != GenerationStatus.Idle)
         {
             if (useCustomSize)
-                meshGenerator.CreateMesh(heightMap, customSize);
+                meshGenerator.CreateLayeredMesh(heightMap, customSize, layerHeights);
             else
-                meshGenerator.CreateMesh(HeightMap, new Vector2(width, height));
+                meshGenerator.CreateLayeredMesh(heightMap, new Vector2(width, height), layerHeights);
         }
             
         
