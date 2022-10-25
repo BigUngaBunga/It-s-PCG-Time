@@ -37,6 +37,7 @@ public class MeshGenerator : MonoBehaviour
     public void CreateLayeredMesh(float[,] heightMap, Vector2 targetSize, params float[] layerHeights)
     {//TODO organisera så att indexering sker för varje submesh. Gör submeshklass som kan hantera allt.
         mesh = new Mesh();
+        mesh.indexFormat = IndexFormat.UInt32;
         var rawVertices = GetVertecies(heightMap, targetSize);
         Write("Number of vertecies: " + rawVertices.Count);
 

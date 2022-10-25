@@ -133,6 +133,7 @@ GameObject:
   m_Component:
   - component: {fileID: 58133991}
   - component: {fileID: 58133988}
+  - component: {fileID: 58133993}
   - component: {fileID: 58133992}
   - component: {fileID: 58133990}
   - component: {fileID: 58133989}
@@ -155,22 +156,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88e1e0699b214114fa05efb65beb56e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  seed: 
+  useRandomSeed: 1
   status: 0
-  width: 24
-  height: 28
+  width: 60
+  height: 46
   landPercentage: 16.1
+  agentMiddleDistance: 14.88
+  scale: {x: 0, y: 0}
   peakHeight: 5.86
   mountainHeight: 3.66
   grassHeight: 0.79
   beachHeight: 0
   underWaterHeight: -1
-  coastlineAgentTokens: 76
-  coastlineAgentLimit: 10
-  coastlineAgentWalkDistance: 3
-  visualize: 1
-  agentRadius: 0.25
   useCustomSize: 0
-  customSize: {x: 0, y: 0}
+  customSize: {x: 100, y: 100}
 --- !u!23 &58133989
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -251,8 +251,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bad515f634c23844897b443aa6e00252, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  method: 2
+  method: 0
   detail: 1
+--- !u!114 &58133993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58133987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e16eccef02ea16e40837b771d9db06b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  status: 0
+  initialCoastlineAgents: 5
+  minimumAdjacentWaterTiles: 1
+  coastlineAgentTokens: 0
+  coastlineAgentLimit: 0
+  coastlineAgentWalkDistance: 0
+  visualize: 0
+  agentWaitTime: 0.045
+  agentRadius: 0.8
 --- !u!1 &461815111
 GameObject:
   m_ObjectHideFlags: 0

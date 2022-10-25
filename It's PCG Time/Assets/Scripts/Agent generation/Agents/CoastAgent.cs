@@ -6,11 +6,13 @@ using Color = UnityEngine.Color;
 
 public class CoastAgent : Agent
 {
+    public static int minimumAdjacentWaterTiles;
+
     private Point attractor, repulsor;
     private int stepsLeftToTake;
-    private float skipMitosis = 0.05f;
+    //private float skipMitosis = 0.05f;
 
-    public CoastAgent(Point position, Vector2 direction, int tokens, int stepsToTake) : base(position, direction, tokens)
+    public CoastAgent(Point position, Vector2 direction, int tokens, int stepsToTake = 0) : base(position, direction, tokens)
     {
         colour = Color.blue;
         stepsLeftToTake = stepsToTake;
@@ -20,9 +22,9 @@ public class CoastAgent : Agent
     {
         base.Act();
         //TODO gör att agenterna går en stund innan de börjar agera
-        if (tokensLeft >= 2 && generator.CanHaveMoreAgents() && !GetProbability(skipMitosis))
+        if (tokensLeft >= 2 && manager.CanHaveMoreAgents())//&& !GetProbability(skipMitosis)
             Mitosis();
-        else if (stepsLeftToTake <= 0 && !IsOnLand && GetNonLandAdjacentPoints(Point).Count >= 3)
+        else if (stepsLeftToTake <= 0 && !IsOnLand && GetNonLandAdjacentPoints(Point).Count > minimumAdjacentWaterTiles)
             EditMap();
         else
         {
@@ -88,10 +90,47 @@ public class CoastAgent : Agent
 
     private void Mitosis()
     {
+        if (tokensLeft % 2 != 0)
+            tokensLeft++;
         int halfOfTokens = tokensLeft / 2;
-        tokensLeft -= halfOfTokens;
+        int leftToSpawn = 2;
+        var neighbors = GetUnoccupiedNeighbors();
 
-        CoastAgent child = new CoastAgent(generator.GetPointOnEdge() , RandomDirection, halfOfTokens, stepsLeftToTake);
-        generator.AddAgent(child);
+        while (leftToSpawn > 0)
+        {
+            if (neighbors.Count > 0)
+            {
+                manager.AddAgent(new CoastAgent(PopRandomNeighbour(), RandomDirection, halfOfTokens));
+                leftToSpawn--;
+            }
+            else
+            {
+                do
+                {
+                    Move();
+                } while (manager.IsOccupied(Point));
+                manager.SetOccupation(Point, true);
+                neighbors = GetUnoccupiedNeighbors();
+            }
+        }
+
+        manager.RemoveAgent(this);
+
+        Point PopRandomNeighbour()
+        {
+            int randomIndex = Random.Range(0, neighbors.Count - 1);
+            var point = neighbors[randomIndex];
+            neighbors.RemoveAt(randomIndex);
+            return point;
+        }
+    }
+
+    private List<Point> GetUnoccupiedNeighbors()
+    {
+        List<Point> neighbors = GetAdjacentPoints(Point);
+        for (int i = neighbors.Count - 1; i >= 0; --i)
+            if (manager.IsOccupied(neighbors[i]))
+                neighbors.RemoveAt(i);
+        return neighbors;
     }
 }

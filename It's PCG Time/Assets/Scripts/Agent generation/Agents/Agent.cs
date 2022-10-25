@@ -7,11 +7,12 @@ using Color = UnityEngine.Color;
 public class Agent
 {
     protected static AgentGenerator generator;
+    protected static AgentManager manager;
 
     public Color colour = Color.red;
     public bool IsActive => tokensLeft > 0;
 
-    protected Point Point => new Point((int)position.x, (int)position.y);
+    public Point Point => new Point((int)position.x, (int)position.y);
     protected Vector2 position;
     private Vector2 direction;
     protected Vector2 Direction
@@ -33,25 +34,26 @@ public class Agent
     }
 
     public static void UpdateGenerator(AgentGenerator newGenerator) => generator = newGenerator;
+    public static void UpdateManager(AgentManager newManager) => manager = newManager;
 
-
+    protected static Point ToPoint(Vector2 position) => new Point((int)position.x, (int)position.y);
     protected static Vector2 ToVector2(Point point) => new Vector2(point.X, point.Y);
     protected static float Distance(Point a, Point b) => (ToVector2(a) - ToVector2(b)).magnitude;
+    protected void PickRandomDirection() => Direction = RandomDirection;
+    protected bool GetProbability(float probability) => Random.value <= probability;
+    public Vector3 GetPosition(float[,] heightMap, float addedHeight) => new Vector3(position.x, heightMap[Point.X, Point.Y] + addedHeight, position.y);
 
     public virtual void Act()
     {
         if (tokensLeft <= 0)
         {
-            generator.RemoveAgent(this);
+            manager.RemoveAgent(this);
             return;
         }
             
     }
 
-    protected virtual void EditMap()
-    {
-        tokensLeft--;
-    }
+    protected virtual void EditMap() => tokensLeft--;
 
     protected virtual void Move()
     {
@@ -59,8 +61,6 @@ public class Agent
         if (!AgentIsWithinBounds())
             PickRandomDirection();
     }
-
-    protected bool GetProbability(float probability) => Random.value <= probability;
 
     private bool AgentIsWithinBounds()
     {
@@ -79,7 +79,6 @@ public class Agent
     }
 
     protected bool PointWithinBounds(Vector2 point) => !(point.x < 0 || point.x > bounds.X || point.y < 0 || point.y > bounds.Y);
-
     protected bool PointWithinBounds(Point point) => PointWithinBounds(new Vector2(point.X, point.Y));
 
     protected List<Point> GetAdjacentPoints(Point start)
@@ -94,8 +93,4 @@ public class Agent
             }
         return validPoints;
     }
-
-    protected void PickRandomDirection() => Direction = RandomDirection;
-
-    public Vector3 GetPosition(float[,] heightMap, float addedHeight) => new Vector3(position.x, heightMap[Point.X, Point.Y] + addedHeight, position.y);
 }

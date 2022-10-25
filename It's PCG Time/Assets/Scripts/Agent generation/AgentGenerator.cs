@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text;
+using Unity.VisualScripting;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,18 +11,22 @@ using static HeightMapGenerator;
 
 public class AgentGenerator : MonoBehaviour
 {
-    enum GenerationStatus { Idle, Starting, Coast, Land, Erosion }
+    public enum GenerationStatus { Idle, Starting, Coast, Land, Erosion }
     public enum LayerType { UnderWater, Beach, Grass, Mountain, Peak }
 
     [Header("Map")]
+    [SerializeField] private string seed;
+    [SerializeField] private bool useRandomSeed;
     [SerializeField] private GenerationStatus status;
-    [SerializeField] private int width;
-    [SerializeField] private int height;
+    public int width;
+    public int height;
     [Range(0, 100)]
-    [SerializeField] private float landPercentage;
+    public float landPercentage;
+    [Range(3.3f, 33)]
+    [SerializeField] private float agentMiddleDistance;
     private float[,] heightMap;
-    private Point size;
-    private Vector2 scale;
+    [DoNotSerialize] public Point size;
+    [DoNotSerialize] public Vector2 scale;
     public float[,] HeightMap => heightMap;
 
     [Header("Layers")]
@@ -29,27 +35,19 @@ public class AgentGenerator : MonoBehaviour
     [SerializeField] private float grassHeight = 0.5f;
     [SerializeField] private float beachHeight = 0;
     [SerializeField] private float underWaterHeight = -1f;
-    private float[] layerHeights => new float[] { peakHeight, mountainHeight, grassHeight, beachHeight, underWaterHeight };
-
-    [Header("Agents")]
-    [SerializeField] private int coastlineAgentTokens;
-    [SerializeField] private int coastlineAgentLimit;
-    [SerializeField] private int coastlineAgentWalkDistance;
-    private List<Agent> agents = new List<Agent>();
+    private float[] LayerHeights => new float[] { peakHeight, mountainHeight, grassHeight, beachHeight, underWaterHeight };
 
     [Header("Other")]
-    [SerializeField] private bool visualize = false;
-    [SerializeField] private float agentRadius = 0.25f;
     [SerializeField] private bool useCustomSize = false;
     [SerializeField] private Vector2 customSize = Vector2.zero;
     private Interpolator interpolator;
     private MeshGenerator meshGenerator;
-
-    private Vector2 RandomDirection => new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+    private AgentManager agentManager;
 
     private void Start()
     {
         interpolator = GetComponent<Interpolator>();
+        agentManager = GetComponent<AgentManager>();
         meshGenerator = gameObject.AddComponent<MeshGenerator>();
         Agent.UpdateGenerator(this);
         StartCoroutine(GenerateTerrain());
@@ -69,16 +67,16 @@ public class AgentGenerator : MonoBehaviour
 
         static int Range(int min, int max) => Random.Range(min, max);
     }
-    public void AddAgent(Agent agent) => agents.Add(agent);
-    public void RemoveAgent(Agent agent) => agents.Remove(agent);
-    public bool CanHaveMoreAgents()
+
+    public Point GetPointInMiddle()
     {
-        return status switch
-        {
-            GenerationStatus.Coast => agents.Count < coastlineAgentLimit,
-            _ => false,
-        };
+        int widthOffset = (int)(width * agentMiddleDistance / 100f);
+        int heightOffset = (int)(height * agentMiddleDistance / 100f);
+        return new Point(Range(width/2 - widthOffset, width/2 + widthOffset), Range(height/2 - heightOffset, height/2 + heightOffset));
+
+        static int Range(int min, int max) => Random.Range(min, max);
     }
+
     public bool IsLand(Point point) => heightMap[point.X, point.Y] >= beachHeight;
     public float GetLayerHeight(LayerType layer)
     {
@@ -95,14 +93,12 @@ public class AgentGenerator : MonoBehaviour
 
     private void Update()
     {
-        if (status != GenerationStatus.Idle)
+        if (agentManager.status != GenerationStatus.Idle)
             GenerateMesh(true);
-
-
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (status != GenerationStatus.Idle)
+            if (agentManager.status != GenerationStatus.Idle)
                 StopAllCoroutines();
             StartCoroutine(GenerateTerrain());
         }
@@ -112,14 +108,14 @@ public class AgentGenerator : MonoBehaviour
     {
         float[,] localHeightMap;
         if (useSimpleInterpolation)
-            localHeightMap = interpolator.OverrideInterpolate(HeightMap, 1, Interpolator.InterpolationMethod.Bilinear);
+            localHeightMap = interpolator.OverrideInterpolate(HeightMap, 1, Interpolator.InterpolationMethod.None);
         else
             localHeightMap = HeightMap;
 
         if (useCustomSize)
-            meshGenerator.CreateLayeredMesh(localHeightMap, customSize, layerHeights);
+            meshGenerator.CreateLayeredMesh(localHeightMap, customSize, LayerHeights);
         else
-            meshGenerator.CreateLayeredMesh(localHeightMap, new Vector2(width, height), layerHeights);
+            meshGenerator.CreateLayeredMesh(localHeightMap, new Vector2(width, height), LayerHeights);
     }
 
     private void UpdateValues()
@@ -130,22 +126,30 @@ public class AgentGenerator : MonoBehaviour
 
     #region Generation
 
+    private void SeedRandom()
+    {
+        if (useRandomSeed)
+            seed = Random.Range(int.MinValue, int.MaxValue).ToString();
+
+        if (!int.TryParse(seed, out int seedValue))
+            seedValue = seed.GetHashCode();
+
+        Random.InitState(seedValue);
+    }
+
     private IEnumerator GenerateTerrain()
     {
-        status = GenerationStatus.Starting;
-        heightMap = GetPopulatedHeightMap(width, height, -1f);
-        agents = new List<Agent>();
+        SeedRandom();
+        agentManager.status = GenerationStatus.Starting;
+        heightMap = GetPopulatedHeightMap(width, height, GetLayerHeight(LayerType.UnderWater));
         UpdateValues();
 
-        CreateCoastlineAgents();
-        yield return SetAgentsToWork();
-        CreateLandAgents();
-        yield return SetAgentsToWork();
-        CreateErosionAgents();
-        yield return SetAgentsToWork();
+        AgentManager.generator = this;
+        yield return agentManager.GenerateNewMap();
 
+        agentManager.status = GenerationStatus.Idle;
+        PrintHeightMap();
         heightMap = interpolator.Interpolate(heightMap);
-        status = GenerationStatus.Idle;
         GenerateMesh(false);
     }
 
@@ -157,64 +161,26 @@ public class AgentGenerator : MonoBehaviour
                 heightMap[x, y] = defaultValue;
         return heightMap;
     }
-
-    private IEnumerator SetAgentsToWork()
-    {
-        bool allAgentsAreFinished = false;
-        while (!allAgentsAreFinished)
-        {
-            Agent.UpdateGenerator(this);
-            allAgentsAreFinished = true;
-            int i = agents.Count;
-            while (--i >= 0)
-            {
-                if (agents[i].IsActive)
-                {
-                    agents[i].Act();
-                    allAgentsAreFinished = false;
-                }
-            }
-            if (visualize)
-                yield return new WaitForSeconds(0.1f);
-        }
-        yield return null;
-    }
-
-    private void CreateCoastlineAgents()
-    {
-        status = GenerationStatus.Coast;
-        agents.Clear();
-        coastlineAgentTokens = (int)(landPercentage / 100f * width * height);
-        coastlineAgentWalkDistance = (width + height) / 4;
-        agents.Add(new CoastAgent(GetPointOnEdge(), RandomDirection, coastlineAgentTokens, coastlineAgentWalkDistance));
-    }
-
-    private void CreateLandAgents()
-    {
-        status = GenerationStatus.Land;
-        agents.Clear();
-    }
-
-    private void CreateErosionAgents()
-    {
-        status = GenerationStatus.Erosion;
-        agents.Clear();
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (visualize)
-        {
-            foreach (var agent in agents)
-            {
-                Gizmos.color = agent.colour;
-                Vector3 agentPosition = agent.GetPosition(heightMap, agentRadius) + transform.position;
-                agentPosition -= new Vector3(size.X * scale.x, 0, size.Y * scale.y) / 2;
-                Gizmos.DrawSphere(agentPosition, agentRadius);
-            }
-        }
-    }
     #endregion
+
+
+    private void PrintHeightMap()
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (GetLayerHeight(LayerType.Beach) > heightMap[x, y])
+                    stringBuilder.Append('-');
+                else
+                    stringBuilder.Append('X');
+            }
+            stringBuilder.AppendLine();
+        }
+
+        Debug.Log(stringBuilder.ToString());
+    }
 }
 
 
