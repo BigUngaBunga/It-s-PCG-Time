@@ -9,7 +9,6 @@ public class Interpolator : MonoBehaviour
     [SerializeField] private int detail = 1;
 
     private float[,] heightMap;
-    private float width, height;
 
     public Interpolator()
     {
@@ -20,6 +19,20 @@ public class Interpolator : MonoBehaviour
     {
         this.heightMap = heightMap;
         return InterpolateHeightMap();
+    }
+
+    public float[,] OverrideInterpolate(float[,] heightMap, int newDetail, InterpolationMethod newInterpolationMethod)
+    {
+        int oldDetail = detail;
+        detail = newDetail;
+        InterpolationMethod oldMethod = method;
+        method = newInterpolationMethod;
+
+        var interpolatedHeightMap = Interpolate(heightMap);
+
+        detail = oldDetail;
+        method = oldMethod;
+        return interpolatedHeightMap;
     }
 
     private float[,] InterpolateHeightMap()

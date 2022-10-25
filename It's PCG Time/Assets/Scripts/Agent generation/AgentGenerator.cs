@@ -34,6 +34,7 @@ public class AgentGenerator : MonoBehaviour
     [Header("Agents")]
     [SerializeField] private int coastlineAgentTokens;
     [SerializeField] private int coastlineAgentLimit;
+    [SerializeField] private int coastlineAgentWalkDistance;
     private List<Agent> agents = new List<Agent>();
 
     [Header("Other")]
@@ -95,20 +96,30 @@ public class AgentGenerator : MonoBehaviour
     private void Update()
     {
         if (status != GenerationStatus.Idle)
-        {
-            if (useCustomSize)
-                meshGenerator.CreateLayeredMesh(heightMap, customSize, layerHeights);
-            else
-                meshGenerator.CreateLayeredMesh(heightMap, new Vector2(width, height), layerHeights);
-        }
-            
-        
+            GenerateMesh(true);
+
+
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             if (status != GenerationStatus.Idle)
                 StopAllCoroutines();
             StartCoroutine(GenerateTerrain());
         }
+    }
+
+    private void GenerateMesh(bool useSimpleInterpolation)
+    {
+        float[,] localHeightMap;
+        if (useSimpleInterpolation)
+            localHeightMap = interpolator.OverrideInterpolate(HeightMap, 1, Interpolator.InterpolationMethod.Bilinear);
+        else
+            localHeightMap = HeightMap;
+
+        if (useCustomSize)
+            meshGenerator.CreateLayeredMesh(localHeightMap, customSize, layerHeights);
+        else
+            meshGenerator.CreateLayeredMesh(localHeightMap, new Vector2(width, height), layerHeights);
     }
 
     private void UpdateValues()
@@ -134,8 +145,8 @@ public class AgentGenerator : MonoBehaviour
         yield return SetAgentsToWork();
 
         heightMap = interpolator.Interpolate(heightMap);
-        yield return null;
         status = GenerationStatus.Idle;
+        GenerateMesh(false);
     }
 
     private float[,] GetPopulatedHeightMap(int width, int height, float defaultValue)
@@ -174,7 +185,8 @@ public class AgentGenerator : MonoBehaviour
         status = GenerationStatus.Coast;
         agents.Clear();
         coastlineAgentTokens = (int)(landPercentage / 100f * width * height);
-        agents.Add(new CoastAgent(GetPointOnEdge(), RandomDirection, coastlineAgentTokens));
+        coastlineAgentWalkDistance = (width + height) / 4;
+        agents.Add(new CoastAgent(GetPointOnEdge(), RandomDirection, coastlineAgentTokens, coastlineAgentWalkDistance));
     }
 
     private void CreateLandAgents()

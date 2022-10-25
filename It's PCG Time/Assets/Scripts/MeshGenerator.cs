@@ -3,53 +3,64 @@ using System.Collections.Generic;
 using System.Drawing;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 using static MeshGenerator;
 
 public class MeshGenerator : MonoBehaviour
 {
     private Mesh mesh;
     private MeshFilter meshFilter;
+    private bool debug;
 
     private void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
     }
 
+    private void Write(string text)
+    {
+        if (debug)
+            Debug.Log(text);
+    }
+
     public void CreateMesh(float[,] heightMap, Vector2 targetSize)
     {
         mesh = new Mesh();
-        var vertices = GetVertecies(heightMap, targetSize, out Vector2[] uv);
+        var vertices = GetVertecies(heightMap, targetSize);
         mesh.SetVertices(vertices);
         var triangles = GetTriangles(heightMap, vertices);
         mesh.SetTriangles(ConvertToIndices(triangles), 0);
         meshFilter.mesh = mesh;
-        mesh.uv = uv;
+        mesh.uv = GetUvs(vertices, heightMap, targetSize);
     }
 
     public void CreateLayeredMesh(float[,] heightMap, Vector2 targetSize, params float[] layerHeights)
     {//TODO organisera så att indexering sker för varje submesh. Gör submeshklass som kan hantera allt.
         mesh = new Mesh();
-        var vertices = GetVertecies(heightMap, targetSize, out Vector2[] uv);
-        Debug.Log("Number of verecies: " + vertices.Length);
+        var rawVertices = GetVertecies(heightMap, targetSize);
+        Write("Number of vertecies: " + rawVertices.Count);
 
-        mesh.SetVertices(vertices);
-        var triangles = GetTriangles(heightMap, vertices);
+        var triangles = GetTriangles(heightMap, rawVertices);
         var triangleLayers = ConvertToLayeredTriangles(triangles, layerHeights);
-
-        mesh.subMeshCount = triangleLayers.Length;
+        var vertices = GetLayeredVertecies(ref triangleLayers);
+        var subMeshes = GetSubMeshes(triangleLayers, out var indices);
+        mesh.SetVertices(vertices);
+        mesh.subMeshCount = subMeshes.Length;
 
         for (int i = 0; i < triangleLayers.Length; i++)
+        {
+            mesh.SetIndices(indices[i], subMeshes[i].topology, i);
+            mesh.SetSubMesh(i, subMeshes[i]);
             mesh.SetTriangles(ConvertToIndices(triangleLayers[i]), i);
-        mesh.SetSubMeshes(GetSubMeshes(triangleLayers));
-        
+        }
+
+        mesh.uv = GetUvs(vertices, heightMap, targetSize);
         meshFilter.mesh = mesh;
-        mesh.uv = uv;
     }
 
-    private Vector3[] GetVertecies(float[,] heightMap, Vector2 targetSize, out Vector2[] uv)
+    private List<Vector3> GetVertecies(float[,] heightMap, Vector2 targetSize)
     {
         List<Vector3> vertecies = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
         Vector2 scale;
         Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
         scale = new Vector2(targetSize.x / size.X, targetSize.y / size.Y);
@@ -59,19 +70,58 @@ public class MeshGenerator : MonoBehaviour
             {
                 var vertex = new Vector3((x - size.X / 2f) * scale.x, heightMap[x, y], (y - size.Y / 2f) * scale.y);
                 vertecies.Add(vertex);
-                uvs.Add(new Vector2(vertex.x, vertex.z));
             }
-
-        uv = uvs.ToArray();
-
-        return vertecies.ToArray();
+        return vertecies;
     }
 
-    private List<Triangle> GetTriangles(float[,] heightMap, Vector3[] vertecies)
+    private Vector2[] GetUvs(List<Vector3> vertecies, float[,] heightMap, Vector2 targetSize)
+    {
+        List<Vector2> uvs = new List<Vector2>();
+        //Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
+        //Vector2 scale = new Vector2(targetSize.x / size.X, targetSize.y / size.Y);
+
+        //for (int x = 0; x < size.X; x++)
+        //    for (int y = 0; y < size.Y; y++)
+        //    {
+        //        var vertex = new Vector2((x - size.X / 2f) * scale.x, (y - size.Y / 2f) * scale.y);
+        //        uvs.Add(new Vector2(vertex.x, vertex.y));
+        //    }
+
+        for (int i = 0; i < vertecies.Count; i++)
+        {
+            var vertex = vertecies[i];
+            uvs.Add(new Vector2(vertex.x, vertex.y));
+        }
+
+        return uvs.ToArray();
+    }
+
+    private List<Vector3> GetLayeredVertecies(ref List<Triangle>[] triangleLayers)
+    {
+        List<Vector3> vertecies = new List<Vector3>();
+        foreach (var triangles in triangleLayers)
+            for (int j = 0; j < triangles.Count; j++)
+                triangles[j] = IndexTriangle(triangles[j]);
+
+        return vertecies;
+        
+        Triangle IndexTriangle(Triangle triangle)
+        {
+            vertecies.Add(triangle.a.position);
+            vertecies.Add(triangle.b.position);
+            vertecies.Add(triangle.c.position);
+            triangle.a.UpdateIndex(vertecies.Count - 3);
+            triangle.b.UpdateIndex(vertecies.Count - 2);
+            triangle.c.UpdateIndex(vertecies.Count - 1);
+            return triangle;
+        }
+    }
+
+    private List<Triangle> GetTriangles(float[,] heightMap, List<Vector3> vertecies)
     {
         List<Quad> quads = new List<Quad>();
         Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        for (int i = 0; i < vertecies.Length; i++)
+        for (int i = 0; i < vertecies.Count; i++)
         {
             if (i % size.Y == size.Y - 1 || i >= heightMap.Length - size.Y - 1)
                 continue;
@@ -83,10 +133,10 @@ public class MeshGenerator : MonoBehaviour
         foreach (var quad in quads)
             triangles.AddRange(quad.GetTriangles());
 
-        Debug.Log("Number of triangles: " + triangles.Count);
+        Write("Number of triangles: " + triangles.Count);
         return triangles;
 
-        Vertex newVertex(int i) => new Vertex(vertecies[i].y, i);
+        Vertex newVertex(int i) => new Vertex(vertecies[i], i);
     }
 
     private List<int> ConvertToIndices(List<Triangle> triangles)
@@ -100,56 +150,59 @@ public class MeshGenerator : MonoBehaviour
     private List<Triangle>[] ConvertToLayeredTriangles(List<Triangle> triangles, float[] layerHeights)
     {
         int length = layerHeights.Length;
-        List<Triangle>[] triangleLayers = new List<Triangle>[length];
+        List<List<Triangle>> triangleLayers = new List<List<Triangle>>();
 
         for (int i = 0; i < length; i++)
-        {
-            triangleLayers[i] = new List<Triangle>();
-        }
+            triangleLayers.Add(new List<Triangle>());
 
         for (int i = 0; i < triangles.Count; i++)
             triangleLayers[GetLayerIndex(triangles[i])].Add(triangles[i]);
-        return triangleLayers;
+
+        return triangleLayers.ToArray();
 
         int GetLayerIndex(Triangle triangle)
         {
             for (int i = 0; i < length; i++)
+            {
+                if (i == length - 1 && i > 0 && triangle.Height > layerHeights[i])
+                    return i - 1;
                 if (triangle.Height >= layerHeights[i])
                     return i;
+            }
+                
             return length - 1;
         }
     }
 
-    private SubMeshDescriptor[] GetSubMeshes(List<Triangle>[] triangleLayers)
+    private SubMeshDescriptor[] GetSubMeshes(List<Triangle>[] triangleLayers, out List<List<int>> indices)
     {
         SubMeshDescriptor[] descriptors = new SubMeshDescriptor[triangleLayers.Length];
-        //HashSet<int> indices = new HashSet<int>();
-        List<int> indices = new List<int>();
+        indices = new List<List<int>>();
         for (int i = 0; i < triangleLayers.Length; i++)
         {
             int firstIndex, indexCount;
-            Debug.Log("Layer: " + i + " Layer size: " + triangleLayers[i].Count);
-            indices.Clear();
+            indices.Add(new List<int>());
+            Write("Layer: " + i + " Layer size: " + triangleLayers[i].Count);
             foreach (var triangle in triangleLayers[i])
             {
-                indices.Add(triangle.indicies[0]);
-                indices.Add(triangle.indicies[1]);
-                indices.Add(triangle.indicies[2]);
+                indices[i].Add(triangle.indicies[0]);
+                indices[i].Add(triangle.indicies[1]);
+                indices[i].Add(triangle.indicies[2]);
             }
             
             if (triangleLayers[i].Count > 0)
             {
                 firstIndex = triangleLayers[i][0].FirstIndex;
-                indexCount = indices.Count;
+                indexCount = indices[i].Count;
             }
             else
             {
-                firstIndex=0;
+                firstIndex = 0;
                 indexCount = 0;
             }
-             
 
-            Debug.Log("Index count: " + indexCount + " Start index: " + firstIndex + " Combined length: " + (indexCount + firstIndex));
+
+            Write("Index count: " + indexCount + " Start index: " + firstIndex + " Combined length: " + (indexCount + firstIndex));
             descriptors[i] = new SubMeshDescriptor(firstIndex, indexCount);
         }
         return descriptors;
@@ -170,29 +223,31 @@ public class MeshGenerator : MonoBehaviour
 
     public struct Triangle
     {
-        private Vertex a, b, c;
-        public int[] indicies;
+        public Vertex a, b, c;
+        public int[] indicies => new int[] { a.index, b.index, c.index};
         public int FirstIndex => Mathf.Min(a.index, b.index, c.index);
         public int LastIndex => Mathf.Max(a.index, b.index, c.index);
-        public float Height => Mathf.Max(a.height, b.height, c.height);
+        public float Height => Mathf.Max(a.Height, b.Height, c.Height);
         public Triangle(Vertex a, Vertex b, Vertex c)
         {
             this.a = a;
             this.b = b;
             this.c = c;
-            indicies = new int[] { a.index, b.index, c.index};
         }
     }
 
     public struct Vertex
     {
-        public float height;
+        public Vector3 position;
+        public float Height => position.y;
         public int index;
 
-        public Vertex(float height, int index)
+        public Vertex(Vector3 position, int index)
         {
-            this.height = height;
+            this.position = position;
             this.index = index;
         }
+
+        public void UpdateIndex(int newIndex) => index = newIndex;
     }
 }

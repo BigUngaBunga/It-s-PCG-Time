@@ -7,23 +7,28 @@ using Color = UnityEngine.Color;
 public class CoastAgent : Agent
 {
     private Point attractor, repulsor;
+    private int stepsLeftToTake;
+    private float skipMitosis = 0.05f;
 
-    public CoastAgent(Point position, Vector2 direction, int tokens) : base(position, direction, tokens)
+    public CoastAgent(Point position, Vector2 direction, int tokens, int stepsToTake) : base(position, direction, tokens)
     {
         colour = Color.blue;
+        stepsLeftToTake = stepsToTake;
     }
 
     public override void Act()
     {
         base.Act();
         //TODO gör att agenterna går en stund innan de börjar agera
-        if (tokensLeft >= 2 && generator.CanHaveMoreAgents())
+        if (tokensLeft >= 2 && generator.CanHaveMoreAgents() && !GetProbability(skipMitosis))
             Mitosis();
-        else if (!generator.IsLand(Point) && GetNonLandAdjacentPoints(Point).Count >= 1)
+        else if (stepsLeftToTake <= 0 && !IsOnLand && GetNonLandAdjacentPoints(Point).Count >= 3)
             EditMap();
         else
+        {
+            --stepsLeftToTake;
             Move();
-
+        }
     }
 
     protected override void EditMap()
@@ -33,6 +38,7 @@ public class CoastAgent : Agent
         attractor = GetRandomNearbyPoint(maxDistance);
         repulsor = GetRandomNearbyPoint(maxDistance, attractor);
         EditBestPoint(GetNonLandAdjacentPoints(Point));
+        PickRandomDirection();
     }
     
     private void EditBestPoint(List<Point> points)
@@ -85,7 +91,7 @@ public class CoastAgent : Agent
         int halfOfTokens = tokensLeft / 2;
         tokensLeft -= halfOfTokens;
 
-        CoastAgent child1 = new CoastAgent(generator.GetPointOnEdge() , RandomDirection, halfOfTokens);
-        generator.AddAgent(child1);
+        CoastAgent child = new CoastAgent(generator.GetPointOnEdge() , RandomDirection, halfOfTokens, stepsLeftToTake);
+        generator.AddAgent(child);
     }
 }

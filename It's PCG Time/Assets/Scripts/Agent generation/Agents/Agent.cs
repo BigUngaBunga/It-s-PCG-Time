@@ -23,6 +23,8 @@ public class Agent
     protected Point bounds = new Point(generator.HeightMap.GetLength(0) - 1, generator.HeightMap.GetLength(1) - 1);
     protected int tokensLeft;
 
+    protected bool IsOnLand => generator.IsLand(Point);
+
     public Agent(Point position, Vector2 direction, int tokens)
     {
         this.position = new Vector2(position.X, position.Y);
@@ -58,6 +60,8 @@ public class Agent
             PickRandomDirection();
     }
 
+    protected bool GetProbability(float probability) => Random.value <= probability;
+
     private bool AgentIsWithinBounds()
     {
         bool withinBounds = PointWithinBounds(position);
@@ -91,7 +95,7 @@ public class Agent
         return validPoints;
     }
 
-    private void PickRandomDirection() => Direction = RandomDirection;
+    protected void PickRandomDirection() => Direction = RandomDirection;
 
     public Vector3 GetPosition(float[,] heightMap, float addedHeight) => new Vector3(position.x, heightMap[Point.X, Point.Y] + addedHeight, position.y);
 }
