@@ -56,7 +56,9 @@ public class CoastAgent : Agent
                 bestPoint = points[i];
             }
         }
-        generator.HeightMap[bestPoint.X, bestPoint.Y] = generator.GetLayerHeight(AgentGenerator.LayerType.Grass);
+
+        float height = generator.GetLayerHeight(AgentGenerator.LayerType.Grass) * Random.Range(1.0f, 1.5f);
+        generator.SetHeight(bestPoint, height);
         --tokensLeft;
         float EvaluateScore(Point position) => Distance(position, attractor) - Distance(position, repulsor);
     }
@@ -94,7 +96,12 @@ public class CoastAgent : Agent
             tokensLeft++;
         int halfOfTokens = tokensLeft / 2;
         int leftToSpawn = 2;
-        var neighbors = GetUnoccupiedNeighbors();
+        List<Point> neighbors;
+        if (manager.forceNonOverlap)
+            neighbors = GetUnoccupiedNeighbors();
+        else
+            neighbors = GetAdjacentPoints(Point);
+
 
         while (leftToSpawn > 0)
         {

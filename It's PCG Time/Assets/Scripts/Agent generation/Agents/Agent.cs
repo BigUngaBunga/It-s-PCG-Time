@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Color = UnityEngine.Color;
 
 public class Agent
@@ -62,6 +63,13 @@ public class Agent
             PickRandomDirection();
     }
 
+    protected virtual void MoveTo(Point point)
+    {
+        position = ToVector2(point);
+        if (!AgentIsWithinBounds())
+            PickRandomDirection();
+    }
+
     private bool AgentIsWithinBounds()
     {
         bool withinBounds = PointWithinBounds(position);
@@ -93,4 +101,7 @@ public class Agent
             }
         return validPoints;
     }
+
+    protected Point GetRandomPoint(List<Point> points) => points[Random.Range(0, points.Count - 1)];
+    protected Point GetRandomAdjacentPoint(Point start) => GetRandomPoint(GetAdjacentPoints(start));
 }

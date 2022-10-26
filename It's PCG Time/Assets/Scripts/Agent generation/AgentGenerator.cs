@@ -53,6 +53,9 @@ public class AgentGenerator : MonoBehaviour
         StartCoroutine(GenerateTerrain());
     }
 
+    //TODO indexera de olika landmassorna
+    //TODO fyll i små hål innan indexeringen
+
     #region AgentMethods
     public Point GetPointOnEdge()
     {
@@ -67,7 +70,6 @@ public class AgentGenerator : MonoBehaviour
 
         static int Range(int min, int max) => Random.Range(min, max);
     }
-
     public Point GetPointInMiddle()
     {
         int widthOffset = (int)(width * agentMiddleDistance / 100f);
@@ -77,6 +79,9 @@ public class AgentGenerator : MonoBehaviour
         static int Range(int min, int max) => Random.Range(min, max);
     }
 
+    public float GetHeight(Point point) => HeightMap[point.X, point.Y];
+    public void SetHeight(Point point, float height) => HeightMap[point.X, point.Y] = height;
+    public void SetHeight(Point point, LayerType layerType) => SetHeight(point, GetLayerHeight(layerType));
     public bool IsLand(Point point) => heightMap[point.X, point.Y] >= beachHeight;
     public float GetLayerHeight(LayerType layer)
     {
@@ -171,7 +176,7 @@ public class AgentGenerator : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                if (GetLayerHeight(LayerType.Beach) > heightMap[x, y])
+                if (GetLayerHeight(LayerType.UnderWater) >= heightMap[x, y])
                     stringBuilder.Append('-');
                 else
                     stringBuilder.Append('X');

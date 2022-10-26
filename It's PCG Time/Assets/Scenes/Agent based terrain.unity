@@ -164,9 +164,9 @@ MonoBehaviour:
   landPercentage: 16.1
   agentMiddleDistance: 14.88
   scale: {x: 0, y: 0}
-  peakHeight: 5.86
-  mountainHeight: 3.66
-  grassHeight: 0.79
+  peakHeight: 3.85
+  mountainHeight: 2.78
+  grassHeight: 0.38
   beachHeight: 0
   underWaterHeight: -1
   useCustomSize: 0
@@ -251,7 +251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bad515f634c23844897b443aa6e00252, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  method: 0
+  method: 3
   detail: 1
 --- !u!114 &58133993
 MonoBehaviour:
@@ -266,12 +266,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   status: 0
-  initialCoastlineAgents: 5
+  initialCoastlineAgents: 7
   minimumAdjacentWaterTiles: 1
+  coastAgentFactor: 0.131
+  forceNonOverlap: 1
+  smoothDistance: 25
+  smoothTokens: 18
+  smoothAgentFactor: 0.175
   coastlineAgentTokens: 0
   coastlineAgentLimit: 0
-  coastlineAgentWalkDistance: 0
-  visualize: 0
+  visualize: 1
   agentWaitTime: 0.045
   agentRadius: 0.8
 --- !u!1 &461815111
