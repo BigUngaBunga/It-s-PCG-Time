@@ -29,6 +29,10 @@ public class AgentManager : MonoBehaviour
     [Range(0.01f, 0.25f)]
     [SerializeField] private float smoothAgentFactor;
 
+    [Header("Beach agents fields")]
+    [Range(0.01f, 0.25f)]
+    [SerializeField] private float beachAgentFactor;
+
     [Header("Agent information")]
     [SerializeField] private int coastlineAgentTokens;
     [SerializeField] private int coastlineAgentLimit;
@@ -133,13 +137,13 @@ public class AgentManager : MonoBehaviour
             if (visualize)
                 yield return new WaitForSeconds(agentWaitTime);
         }
+        agents.Clear();
         yield return null;
     }
 
     private IEnumerator CreateCoastlineAgents()
     {
         status = Status.Coast;
-        agents.Clear();
         coastlineAgentTokens = (int)(generator.landPercentage / 100f * generator.width * generator.height);
         coastlineAgentLimit = (int)(generator.width * generator.height / 100 * coastAgentFactor + 1);
 
@@ -166,7 +170,6 @@ public class AgentManager : MonoBehaviour
 
     private IEnumerator CreateSmoothingAgents()
     {
-        agents.Clear();
         foreach (var area in areas)
             for (int i = 0; i < (int)(area.Size * smoothAgentFactor); i++)
                 agents.Add(new SmoothingAgent(Point.Empty, Vector2.zero, smoothTokens, area));
@@ -176,14 +179,18 @@ public class AgentManager : MonoBehaviour
     private IEnumerator CreateLandAgents()
     {
         status = Status.Land;
-        agents.Clear();
+
+        int beachTokens = 100;//TODO fixa en sund mängd tokens;
+        foreach (var area in areas)
+            for (int i = 0; i < (int)(area.CoastPoints.Count * beachAgentFactor); i++)
+                agents.Add(new BeachAgent(Point.Empty, Vector2.zero, smoothTokens, area));
+
         yield return SetAgentsToWork();
     }
 
     private IEnumerator CreateErosionAgents()
     {
         status = Status.Erosion;
-        agents.Clear();
         yield return SetAgentsToWork();
     }
 
@@ -191,12 +198,25 @@ public class AgentManager : MonoBehaviour
     {
         if (visualize)
         {
+            Vector3 offset = new Vector3(generator.size.X * generator.scale.x, 0, generator.size.Y * generator.scale.y) / 2;
+
             foreach (var agent in agents)
             {
                 Gizmos.color = agent.colour;
                 Vector3 agentPosition = agent.GetPosition(generator.HeightMap, agentRadius) + transform.position;
-                agentPosition -= new Vector3(generator.size.X * generator.scale.x, 0, generator.size.Y * generator.scale.y) / 2;
+                agentPosition -= offset;
                 Gizmos.DrawSphere(agentPosition, agentRadius);
+            }
+
+            Gizmos.color = UnityEngine.Color.magenta;
+            foreach (var area in areas)
+            {
+                foreach (var point in area.CoastPoints)
+                {
+                    var position = new Vector3(point.X, generator.GetHeight(point), point.Y);
+                    position -= offset;
+                    Gizmos.DrawWireSphere(position, 0.5f);
+                }
             }
         }
     }

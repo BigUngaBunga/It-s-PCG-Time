@@ -4,17 +4,15 @@ using System.Drawing;
 using UnityEngine;
 using Color = UnityEngine.Color;
 
-public class SmoothingAgent : Agent
+public class SmoothingAgent : LandAgent
 {
     private Point startingPoint;
-    private LandArea area;
     private int coverage;
 
-    public SmoothingAgent(Point position, Vector2 direction, int tokens, LandArea area) : base(position, direction, tokens)
+    public SmoothingAgent(Point position, Vector2 direction, int tokens, LandArea area) : base(position, direction, tokens, area)
     {
         colour = Color.yellow;
         startingPoint = area.GetRandomPoint();
-        this.area = area;
         this.position = ToVector2(startingPoint);
         coverage = manager.smoothDistance;
     }
@@ -43,16 +41,5 @@ public class SmoothingAgent : Agent
         }
         height /= weight;
         generator.SetHeight(Point, height);
-    }
-
-    private List<Point> GetNeumannNeighborhood(Point point)
-    {
-        List<Point> neighbors = new List<Point> { new Point(point.X -1, point.Y), new Point(point.X + 1, point.Y),
-                                                    new Point(point.X, point.Y -1 ), new Point(point.X, point.Y + 1)};
-        
-        for (int i = neighbors.Count; i >= 0; i--)
-            if (!PointWithinBounds(neighbors[i]))
-                neighbors.RemoveAt(i);
-        return neighbors;
     }
 }

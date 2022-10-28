@@ -57,7 +57,7 @@ public class CoastAgent : Agent
             }
         }
 
-        float height = generator.GetLayerHeight(AgentGenerator.LayerType.Grass) * Random.Range(1.0f, 1.5f);
+        float height = (generator.GetLayerHeight(AgentGenerator.LayerType.Grass) + generator.GetLayerHeight(AgentGenerator.LayerType.Mountain)) * Random.Range(0.4f,0.5f);
         generator.SetHeight(bestPoint, height);
         --tokensLeft;
         float EvaluateScore(Point position) => Distance(position, attractor) - Distance(position, repulsor);

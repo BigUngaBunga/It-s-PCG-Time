@@ -17,7 +17,6 @@ public class AgentGenerator : MonoBehaviour
     [Header("Map")]
     [SerializeField] private string seed;
     [SerializeField] private bool useRandomSeed;
-    [SerializeField] private GenerationStatus status;
     public int width;
     public int height;
     [Range(0, 100)]
@@ -40,6 +39,7 @@ public class AgentGenerator : MonoBehaviour
     [Header("Other")]
     [SerializeField] private bool useCustomSize = false;
     [SerializeField] private Vector2 customSize = Vector2.zero;
+    [SerializeField] private LandArea.WaterRemovalArea waterRemoval;
     private Interpolator interpolator;
     private MeshGenerator meshGenerator;
     private AgentManager agentManager;
@@ -48,7 +48,7 @@ public class AgentGenerator : MonoBehaviour
     {
         interpolator = GetComponent<Interpolator>();
         agentManager = GetComponent<AgentManager>();
-        meshGenerator = gameObject.AddComponent<MeshGenerator>();
+        meshGenerator = GetComponent<MeshGenerator>();
         Agent.UpdateGenerator(this);
         StartCoroutine(GenerateTerrain());
     }
@@ -127,6 +127,7 @@ public class AgentGenerator : MonoBehaviour
     {
         size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
         scale = new Vector2((float)width / size.X, (float)height / size.Y);
+        LandArea.removalArea = waterRemoval;
     }
 
     #region Generation

@@ -39,7 +39,7 @@ public class Agent
 
     protected static Point ToPoint(Vector2 position) => new Point((int)position.x, (int)position.y);
     protected static Vector2 ToVector2(Point point) => new Vector2(point.X, point.Y);
-    protected static float Distance(Point a, Point b) => (ToVector2(a) - ToVector2(b)).magnitude;
+    public static float Distance(Point a, Point b) => (ToVector2(a) - ToVector2(b)).magnitude;
     protected void PickRandomDirection() => Direction = RandomDirection;
     protected bool GetProbability(float probability) => Random.value <= probability;
     public Vector3 GetPosition(float[,] heightMap, float addedHeight) => new Vector3(position.x, heightMap[Point.X, Point.Y] + addedHeight, position.y);
@@ -102,6 +102,12 @@ public class Agent
         return validPoints;
     }
 
-    protected Point GetRandomPoint(List<Point> points) => points[Random.Range(0, points.Count - 1)];
+    protected Point GetRandomPoint(List<Point> points)
+    {
+        if (points.Count >= 1)
+            return points[Random.Range(0, points.Count - 1)];
+        return Point;
+
+    }
     protected Point GetRandomAdjacentPoint(Point start) => GetRandomPoint(GetAdjacentPoints(start));
 }

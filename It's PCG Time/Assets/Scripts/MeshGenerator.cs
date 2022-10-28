@@ -8,6 +8,9 @@ using static MeshGenerator;
 
 public class MeshGenerator : MonoBehaviour
 {
+    enum HeightMapType { Point, Quad }
+
+    [SerializeField] private HeightMapType type;
     private Mesh mesh;
     private MeshFilter meshFilter;
     private bool debug;
@@ -23,8 +26,34 @@ public class MeshGenerator : MonoBehaviour
             Debug.Log(text);
     }
 
+    private float[,] Enbiggen(float[,] heightMap)
+    {
+        float[,] biggerMap = new float[heightMap.GetLength(0) * 2, heightMap.GetLength(1) * 2];
+        for (int x = 0; x < heightMap.GetLength(0); x++)
+        {
+            for (int y = 0; y < heightMap.GetLength(1); y++)
+            {
+                AddAsFour(x, y);
+            }
+        }
+        return biggerMap;
+
+        void AddAsFour(int x, int y)
+        {
+            float height = heightMap[x, y];
+            int newX = x * 2;
+            int newY = y * 2;
+            biggerMap[newX, newY] = height;
+            biggerMap[newX+1, newY] = height;
+            biggerMap[newX, newY+1] = height;
+            biggerMap[newX+1, newY+1] = height;
+        }
+    }
+
     public void CreateMesh(float[,] heightMap, Vector2 targetSize)
     {
+        if (type == HeightMapType.Quad)
+            heightMap = Enbiggen(heightMap);
         mesh = new Mesh();
         var vertices = GetVertecies(heightMap, targetSize);
         mesh.SetVertices(vertices);
@@ -36,6 +65,9 @@ public class MeshGenerator : MonoBehaviour
 
     public void CreateLayeredMesh(float[,] heightMap, Vector2 targetSize, params float[] layerHeights)
     {//TODO organisera så att indexering sker för varje submesh. Gör submeshklass som kan hantera allt.
+        if (type == HeightMapType.Quad)
+            heightMap = Enbiggen(heightMap);
+
         mesh = new Mesh();
         mesh.indexFormat = IndexFormat.UInt32;
         var rawVertices = GetVertecies(heightMap, targetSize);
@@ -69,10 +101,27 @@ public class MeshGenerator : MonoBehaviour
         for (int x = 0; x < size.X; x++)
             for (int y = 0; y < size.Y; y++)
             {
-                var vertex = new Vector3((x - size.X / 2f) * scale.x, heightMap[x, y], (y - size.Y / 2f) * scale.y);
-                vertecies.Add(vertex);
+                vertecies.Add(new Vector3((x - size.X / 2f) * scale.x, heightMap[x, y], (y - size.Y / 2f) * scale.y));
+                //if (type == HeightMapType.Point)
+                    
+                //else //TODO se över att göra på detta sätt
+                //    AddQuad(x, y, heightMap[x, y]);
             }
         return vertecies;
+
+        void AddQuadVertex(int x, int y, float height)
+        {
+            if (x < size.X && y < size.Y)
+                height = (height + heightMap[x, y]) / 2f;
+            vertecies.Add(new Vector3((x - size.X / 2f) * scale.x, height, (y - size.Y / 2f) * scale.y));
+        }
+        void AddQuad(int x, int y, float height, bool forceReturn = false)
+        {
+            if (!forceReturn && x > 0)
+                AddQuad(x, y, heightMap[x-1, y], true);
+            AddQuadVertex(x, y, height);
+            AddQuadVertex(x + 1, y, height);
+        }
     }
 
     private Vector2[] GetUvs(List<Vector3> vertecies, float[,] heightMap, Vector2 targetSize)
