@@ -159,17 +159,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   seed: 
   useRandomSeed: 1
-  status: 0
-  width: 60
-  height: 46
-  landPercentage: 16.1
-  agentMiddleDistance: 14.88
+  width: 80
+  height: 88
+  landPercentage: 35.3
+  agentMiddleDistance: 26.4
   scale: {x: 0, y: 0}
-  peakHeight: 3.85
-  mountainHeight: 2.78
-  grassHeight: 0.38
-  beachHeight: 0
-  underWaterHeight: -1
+  peakHeight: 6.64
+  mountainHeight: 4.15
+  grassHeight: 2.09
+  beachHeight: 0.5
+  underWaterHeight: 0
   useCustomSize: 0
   customSize: {x: 100, y: 100}
   waterRemoval: 1
@@ -268,14 +267,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   status: 0
-  initialCoastlineAgents: 7
+  initialCoastlineAgents: 5
   minimumAdjacentWaterTiles: 1
-  coastAgentFactor: 0.131
+  coastAgentFactor: 0.299
   forceNonOverlap: 1
   smoothDistance: 7
   smoothTokens: 25
   smoothAgentFactor: 0.135
   beachAgentFactor: 0.042
+  beachAgentHeightFactor: 0.157
+  beachWidth: 2
   coastlineAgentTokens: 0
   coastlineAgentLimit: 0
   visualize: 1

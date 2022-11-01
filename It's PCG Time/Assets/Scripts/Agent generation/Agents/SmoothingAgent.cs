@@ -30,10 +30,11 @@ public class SmoothingAgent : LandAgent
     private void SmoothenPoint()
     {
         tokensLeft--;
-        var neighbors = GetAdjacentPoints(Point);
+        int smoothDistance = 1;
+        var neighbors = GetAdjacentNeumann(Point, smoothDistance);
 
-        int weight = 3;
-        float height = generator.GetHeight(Point) * 3;
+        int weight = 4 * smoothDistance;
+        float height = generator.GetHeight(Point) * weight;
         foreach (var neighbor in neighbors)
         {
             ++weight;

@@ -32,6 +32,16 @@ public class AgentManager : MonoBehaviour
     [Header("Beach agents fields")]
     [Range(0.01f, 0.25f)]
     [SerializeField] private float beachAgentFactor;
+    [Range(0.01f, 0.5f)]
+    [SerializeField] private float beachAgentHeightFactor;
+    [Range(1, 5)]
+    [SerializeField] private int beachWidth;
+
+    [Header("Mountain agents fields")]
+    [Range(0.0f, 1f)]
+    [SerializeField] private float mountainProbability;
+    [Min(0.01f)]
+    [SerializeField] private float mountainAgentTokenFactor;
 
     [Header("Agent information")]
     [SerializeField] private int coastlineAgentTokens;
@@ -86,7 +96,12 @@ public class AgentManager : MonoBehaviour
             }
 
             if (isOnNewIsland)
-                areas.Add(new LandArea(startingPoints[i], generator.HeightMap, generator.GetLayerHeight(AgentGenerator.LayerType.Beach)));
+            {
+                LandArea newIsland = new LandArea(startingPoints[i], generator.HeightMap, generator.GetLayerHeight(LayerType.UnderWater));
+                if (newIsland.Size > 0)
+                    areas.Add(newIsland);
+            }
+                
         }
 
         Debug.Log("Number of islands: " + areas.Count);
@@ -108,13 +123,14 @@ public class AgentManager : MonoBehaviour
 
     public IEnumerator GenerateNewMap()
     {
-        agents = new List<Agent>();
+        agents.Clear();
+        areas.Clear();
         isOccupied = new bool[generator.width, generator.height];
         yield return CreateCoastlineAgents();
-        yield return CreateSmoothingAgents();
+        yield return CreateBeachAgents();
         RecalculateLandAreas();
-        yield return CreateLandAgents();
-        yield return CreateErosionAgents();
+        yield return CreateMountainAgents();
+        yield return CreateSmoothingAgents();
     }
 
     private IEnumerator SetAgentsToWork()
@@ -176,27 +192,41 @@ public class AgentManager : MonoBehaviour
         yield return SetAgentsToWork();
     }
 
-    private IEnumerator CreateLandAgents()
+    private IEnumerator CreateBeachAgents()
     {
         status = Status.Land;
 
-        int beachTokens = 100;//TODO fixa en sund mängd tokens;
+
         foreach (var area in areas)
-            for (int i = 0; i < (int)(area.CoastPoints.Count * beachAgentFactor); i++)
-                agents.Add(new BeachAgent(Point.Empty, Vector2.zero, smoothTokens, area));
+        {
+            int numberOfAgents = (int)(area.CoastPoints.Count * beachAgentFactor + 1);
+            int beachTokens = 10 * area.CoastPoints.Count / numberOfAgents;
+            for (int i = 0; i < numberOfAgents; i++)
+                agents.Add(new BeachAgent(Point.Empty, Vector2.zero, beachTokens, area, beachAgentHeightFactor, beachWidth));
+        }
 
         yield return SetAgentsToWork();
     }
 
-    private IEnumerator CreateErosionAgents()
+    private IEnumerator CreateMountainAgents()
     {
-        status = Status.Erosion;
+        status = Status.Land;
+
+        foreach (var area in areas)
+        {
+            if (Random.value < mountainProbability)
+            {
+                int mountainTokens = (int)(100 * area.Size * mountainAgentTokenFactor);
+                agents.Add(new MountainAgent(Point.Empty, Vector2.zero, mountainTokens, area));
+            }   
+        }
+
         yield return SetAgentsToWork();
     }
 
     private void OnDrawGizmos()
     {
-        if (visualize)
+        if (visualize && generator != null)
         {
             Vector3 offset = new Vector3(generator.size.X * generator.scale.x, 0, generator.size.Y * generator.scale.y) / 2;
 

@@ -6,63 +6,73 @@ using static UnityEngine.GraphicsBuffer;
 
 public class BeachAgent : LandAgent
 {
-    List<Point> visitedBefore; //TODO lägg till platser som agenten går till för att förhindra att den gå i cirklar
+    private int searchDistance;
+    private float targetHeight;
+    private List<Point> visitedBefore;
+    private Point previousPosition;
 
-    public BeachAgent(Point position, Vector2 direction, int tokens, LandArea area) : base(position, direction, tokens, area)
+    public BeachAgent(Point position, Vector2 direction, int tokens, LandArea area, float targetHeightFactor, int searchDistance) : base(position, direction, tokens, area)
     {
         colour = new UnityEngine.Color(1, 0.8f, 0.1f); //Yellow? Maybe
         PickRandomDirection();
         GoToRandomCoast();
         visitedBefore = new List<Point>();
+        this.searchDistance = searchDistance;
+        targetHeight = generator.GetLayerHeight(AgentGenerator.LayerType.Beach) * targetHeightFactor;
+        previousPosition = Point;
     }
 
     public override void Act()
     {
         base.Act();
-        //GoToRandomCoast();
-        FollowCoast();
+        Move();
+        EditMap();
     }
 
     protected override void EditMap()
     {
-        base.EditMap();
+        var adjacent = area.GetAdjacentPoints(Point, searchDistance);
+        float weight = 3;
+        foreach (var point in adjacent)
+        {
+            base.EditMap();
+            float height = generator.GetHeight(point) * weight;
+            height += targetHeight;
+            generator.SetHeight(point, height / (weight + 1));
+        }
     }
 
     private void GoToRandomCoast() => position = ToVector2(area.GetRandomCoast());
 
-    private void FollowCoast()
+    protected override void Move()
     {
         var adjacentCoast = area.GetAdjacentCoast(Point);
-        float closestAngle = float.MaxValue;
-        int bestIndex = -1;
-        for (int i = 0; i < adjacentCoast.Count; i++)
+        for (int i = adjacentCoast.Count - 1; i >= 0; i--)
+            if (adjacentCoast[i] == previousPosition)
+                adjacentCoast.RemoveAt(i);
+
+        int index = Random.Range(0, adjacentCoast.Count - 1);
+        if (adjacentCoast.Count <= 0 || index < 0)
         {
-            if (bestIndex < 0)
-            {
-                bestIndex = i;
-                closestAngle = GetAngle(adjacentCoast[i]);
-            }
-            else if (closestAngle > GetAngle(adjacentCoast[i]))
-            {
-                bestIndex = i;
-                closestAngle = GetAngle(adjacentCoast[i]);
-            }
+            GoToRandomCoast();
+            return;
         }
-        Direction = GetDirection(adjacentCoast[bestIndex]);
+        MoveTo(adjacentCoast[index]);
+        previousPosition = Point;
 
-        Move();
-
-        Vector2 GetDirection(Point target) => new Vector2(target.X - Point.X, target.Y - Point.Y).normalized;
-        float GetAngle(Point target) => Vector2.Angle(GetDirection(target), Direction);
+        if (visitedBefore.Contains(Point))
+        {
+            visitedBefore.Clear();
+            GoToRandomCoast();
+        }
+        visitedBefore.Add(Point);
     }
 
-    private void MakeCoastalBeach()
+    private float GetAverageHeight(List<Point> points)
     {
-
-    }
-
-    private void MakeInlandBeach()
-    {
-
+        float height = 0;
+        foreach (var point in points)
+            height += generator.GetHeight(point);
+        return height /= points.Count;
     }
 }

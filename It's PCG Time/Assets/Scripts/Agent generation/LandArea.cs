@@ -35,7 +35,6 @@ public class LandArea
         this.waterHeight = waterHeight;
         this.start = start;
         CalculateLandArea(heightMap);
-        CalculateCoast(heightMap);
     }
 
     public bool ContainsPoint(Point point) => landPoints.Contains(point);
@@ -114,18 +113,17 @@ public class LandArea
     {
         this.heightMap = heightMap;
         landPoints.Clear();
-        //coastPoints.Clear();
         searchQueue.Clear();
         searchedPoints = new bool[heightMap.GetLength(0), heightMap.GetLength(1)];
+        int searchedCounter = 0;
 
-        if (IsLand(start))
-            AddPoint(start);
-
+        AddPoint(start);
         Point currentPoint;
 
         int distance = 2;
         while (searchQueue.Count > 0)
         {
+            ++searchedCounter;
             currentPoint = searchQueue.Dequeue();
             var adjacent = GetAdjacentPoints(currentPoint, distance);
                 
@@ -133,6 +131,7 @@ public class LandArea
                 if (!WasSearched(point))
                     AddPoint(point);
         }
+        CalculateCoast(heightMap);
     }
 
     private void AddPoint(Point point)

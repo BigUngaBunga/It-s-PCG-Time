@@ -89,17 +89,38 @@ public class Agent
     protected bool PointWithinBounds(Vector2 point) => !(point.x < 0 || point.x > bounds.X || point.y < 0 || point.y > bounds.Y);
     protected bool PointWithinBounds(Point point) => PointWithinBounds(new Vector2(point.X, point.Y));
 
-    protected List<Point> GetAdjacentPoints(Point start)
+    protected List<Point> GetAdjacentPoints(Point start, int distance = 1)
     {
         List<Point> validPoints = new List<Point>();
-        for (int x = -1; x < 2; x++)
-            for (int y = -1; y < 2; y++)
+        for (int x = -distance; x < (1 + distance); x++)
+            for (int y = -distance; y < (1 + distance); y++)
             {
                 Point point = new Point(x + start.X, y + start.Y);
                 if (PointWithinBounds(point))
                     validPoints.Add(point);
             }
         return validPoints;
+    }
+
+    protected List<Point> GetAdjacentNeumann(Point start, int distance = 1)
+    {
+        List<Point> adjacent = new List<Point>();
+
+        for (int i = -distance; i < (1 + distance); i++)
+        {
+            if (i == 0)
+                continue;
+            Point pointX = new Point(start.X + distance, start.Y);
+            Point pointY = new Point(start.X, start.Y + distance);
+            adjacent.Add(pointX);
+            adjacent.Add(pointY);
+        }
+
+        for (int i = adjacent.Count -1 ; i >= 0; --i)
+            if (!PointWithinBounds(adjacent[i]))
+                adjacent.RemoveAt(i);
+
+        return adjacent;
     }
 
     protected Point GetRandomPoint(List<Point> points)

@@ -11,7 +11,7 @@ using static HeightMapGenerator;
 
 public class AgentGenerator : MonoBehaviour
 {
-    public enum GenerationStatus { Idle, Starting, Coast, Land, Erosion }
+    public enum GenerationStatus { Idle, Starting, Coast, Land }
     public enum LayerType { UnderWater, Beach, Grass, Mountain, Peak }
 
     [Header("Map")]
@@ -170,14 +170,15 @@ public class AgentGenerator : MonoBehaviour
     #endregion
 
 
-    private void PrintHeightMap()
+    public void PrintHeightMap()
     {
         StringBuilder stringBuilder = new StringBuilder();
+        float waterHeight = GetLayerHeight(LayerType.UnderWater);
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                if (GetLayerHeight(LayerType.UnderWater) >= heightMap[x, y])
+                if (waterHeight >= heightMap[x, y])
                     stringBuilder.Append('-');
                 else
                     stringBuilder.Append('X');
