@@ -89,7 +89,7 @@ public class Agent
     protected bool PointWithinBounds(Vector2 point) => !(point.x < 0 || point.x > bounds.X || point.y < 0 || point.y > bounds.Y);
     protected bool PointWithinBounds(Point point) => PointWithinBounds(new Vector2(point.X, point.Y));
 
-    protected List<Point> GetAdjacentPoints(Point start, int distance = 1)
+    protected List<Point> GetAdjacentPoints(Point start, int distance = 1, bool round = false)
     {
         List<Point> validPoints = new List<Point>();
         for (int x = -distance; x < (1 + distance); x++)
@@ -97,7 +97,11 @@ public class Agent
             {
                 Point point = new Point(x + start.X, y + start.Y);
                 if (PointWithinBounds(point))
+                {
+                    if (round && Distance(start, point) > distance)
+                        continue;
                     validPoints.Add(point);
+                }
             }
         return validPoints;
     }

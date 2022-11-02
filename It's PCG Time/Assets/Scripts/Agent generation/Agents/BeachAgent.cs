@@ -31,7 +31,7 @@ public class BeachAgent : LandAgent
 
     protected override void EditMap()
     {
-        var adjacent = area.GetAdjacentPoints(Point, searchDistance);
+        var adjacent = area.GetAdjacentPoints(Point, searchDistance, true);
         float weight = 3;
         foreach (var point in adjacent)
         {
@@ -66,13 +66,5 @@ public class BeachAgent : LandAgent
             GoToRandomCoast();
         }
         visitedBefore.Add(Point);
-    }
-
-    private float GetAverageHeight(List<Point> points)
-    {
-        float height = 0;
-        foreach (var point in points)
-            height += generator.GetHeight(point);
-        return height /= points.Count;
     }
 }

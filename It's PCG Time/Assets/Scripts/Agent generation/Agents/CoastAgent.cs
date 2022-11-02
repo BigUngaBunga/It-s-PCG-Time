@@ -8,37 +8,33 @@ public class CoastAgent : Agent
 {
     public static int minimumAdjacentWaterTiles;
 
+    private int reach;
+    private float skipMitosis;
     private Point attractor, repulsor;
-    private int stepsLeftToTake;
-    //private float skipMitosis = 0.05f;
 
-    public CoastAgent(Point position, Vector2 direction, int tokens, int stepsToTake = 0) : base(position, direction, tokens)
+    public CoastAgent(Point position, Vector2 direction, int tokens, int reach) : base(position, direction, tokens)
     {
         colour = Color.blue;
-        stepsLeftToTake = stepsToTake;
+        this.reach = reach;
+        skipMitosis = 0.33f;
     }
 
     public override void Act()
     {
         base.Act();
-        //TODO gör att agenterna går en stund innan de börjar agera
-        if (tokensLeft >= 2 && manager.CanHaveMoreAgents())//&& !GetProbability(skipMitosis)
+        if (tokensLeft >= 2 && manager.CanHaveMoreAgents() && !GetProbability(skipMitosis))
             Mitosis();
-        else if (stepsLeftToTake <= 0 && !IsOnLand && GetNonLandAdjacentPoints(Point).Count > minimumAdjacentWaterTiles)
+        else if (!IsOnLand || GetNonLandAdjacentPoints(Point).Count > minimumAdjacentWaterTiles)
             EditMap();
         else
-        {
-            --stepsLeftToTake;
             Move();
-        }
     }
 
     protected override void EditMap()
     {
         base.EditMap();
-        int maxDistance = 4;
-        attractor = GetRandomNearbyPoint(maxDistance);
-        repulsor = GetRandomNearbyPoint(maxDistance, attractor);
+        attractor = GetRandomNearbyPoint(reach);
+        repulsor = GetRandomNearbyPoint(reach, attractor);
         EditBestPoint(GetNonLandAdjacentPoints(Point));
         PickRandomDirection();
     }
@@ -107,7 +103,7 @@ public class CoastAgent : Agent
         {
             if (neighbors.Count > 0)
             {
-                manager.AddAgent(new CoastAgent(PopRandomNeighbour(), RandomDirection, halfOfTokens));
+                manager.AddAgent(new CoastAgent(PopRandomNeighbour(), RandomDirection, halfOfTokens, reach));
                 leftToSpawn--;
             }
             else

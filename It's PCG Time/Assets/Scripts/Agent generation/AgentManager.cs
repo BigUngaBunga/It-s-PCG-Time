@@ -19,6 +19,8 @@ public class AgentManager : MonoBehaviour
     [SerializeField] private int minimumAdjacentWaterTiles;
     [Range(0.0f, 1f)]
     [SerializeField] private float coastAgentFactor;
+    [Range(1, 10)]
+    [SerializeField] private int coastAgentReach;
     public bool forceNonOverlap = false;
 
     [Header("Smoothing agents fields")]
@@ -40,8 +42,8 @@ public class AgentManager : MonoBehaviour
     [Header("Mountain agents fields")]
     [Range(0.0f, 1f)]
     [SerializeField] private float mountainProbability;
-    [Min(0.01f)]
-    [SerializeField] private float mountainAgentTokenFactor;
+    [Min(1)]
+    [SerializeField] private float mountainWidth;
 
     [Header("Agent information")]
     [SerializeField] private int coastlineAgentTokens;
@@ -54,8 +56,8 @@ public class AgentManager : MonoBehaviour
     [SerializeField] private float agentWaitTime;
     [SerializeField] private float agentRadius = 0.25f;
 
-    private List<LandArea> areas = new List<LandArea>();
-    private List<Agent> agents = new List<Agent>();
+    private readonly List<LandArea> areas = new List<LandArea>();
+    private readonly List<Agent> agents = new List<Agent>();
     private bool[,] isOccupied;
     private Vector2 RandomDirection => new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f));
 
@@ -176,7 +178,7 @@ public class AgentManager : MonoBehaviour
             } while (IsOccupied(point));
             startingPoints.Add(point);
             SetOccupation(point, true);
-            agents.Add(new CoastAgent(point, RandomDirection, coastlineAgentTokens / initialAgents));
+            agents.Add(new CoastAgent(point, RandomDirection, coastlineAgentTokens / initialAgents, coastAgentReach));
         }
         
         yield return SetAgentsToWork();
@@ -213,13 +215,7 @@ public class AgentManager : MonoBehaviour
         status = Status.Land;
 
         foreach (var area in areas)
-        {
-            if (Random.value < mountainProbability)
-            {
-                int mountainTokens = (int)(100 * area.Size * mountainAgentTokenFactor);
-                agents.Add(new MountainAgent(Point.Empty, Vector2.zero, mountainTokens, area));
-            }   
-        }
+            agents.Add(new MountainAgent(Point.Empty, Vector2.zero, 1, area, mountainWidth, mountainProbability));
 
         yield return SetAgentsToWork();
     }

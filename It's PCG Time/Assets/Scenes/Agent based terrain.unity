@@ -164,8 +164,8 @@ MonoBehaviour:
   landPercentage: 35.3
   agentMiddleDistance: 26.4
   scale: {x: 0, y: 0}
-  peakHeight: 6.64
-  mountainHeight: 4.15
+  peakHeight: 9
+  mountainHeight: 4.5
   grassHeight: 2.09
   beachHeight: 0.5
   underWaterHeight: 0
@@ -270,13 +270,16 @@ MonoBehaviour:
   initialCoastlineAgents: 5
   minimumAdjacentWaterTiles: 1
   coastAgentFactor: 0.299
-  forceNonOverlap: 1
+  coastAgentReach: 3
+  forceNonOverlap: 0
   smoothDistance: 7
   smoothTokens: 25
   smoothAgentFactor: 0.135
   beachAgentFactor: 0.042
   beachAgentHeightFactor: 0.157
   beachWidth: 2
+  mountainProbability: 0.341
+  mountainWidth: 5.79
   coastlineAgentTokens: 0
   coastlineAgentLimit: 0
   visualize: 1

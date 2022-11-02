@@ -43,6 +43,7 @@ public class AgentGenerator : MonoBehaviour
     private Interpolator interpolator;
     private MeshGenerator meshGenerator;
     private AgentManager agentManager;
+    public int SeedValue { get; private set; }
 
     private void Start()
     {
@@ -139,7 +140,7 @@ public class AgentGenerator : MonoBehaviour
 
         if (!int.TryParse(seed, out int seedValue))
             seedValue = seed.GetHashCode();
-
+        SeedValue = seedValue;
         Random.InitState(seedValue);
     }
 

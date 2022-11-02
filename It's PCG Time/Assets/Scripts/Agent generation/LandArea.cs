@@ -73,7 +73,29 @@ public class LandArea
         }
         return adjacent;
     }
-    
+    public Point GetClosestWaterTile(Point start)
+    {
+        searchQueue.Clear();
+        searchedPoints = new bool[heightMap.GetLength(0), heightMap.GetLength(1)];
+
+        AddPoint(start, false);
+        Point currentPoint;
+        while (searchQueue.Count > 0)
+        {
+            currentPoint = searchQueue.Dequeue();
+            var adjacent = GetNeumannAdjacentPoints(currentPoint, excludeWater: false);
+
+            foreach (var point in adjacent)
+            {
+                if (!IsLand(point))
+                    return point;
+                else if (!WasSearched(point))
+                    AddPoint(point, false);
+            }
+        }
+        return currentPoint;
+    }
+
     public List<Point> GetAdjacentPoints(Point start, int distance = 1, bool excludeWater = true)
     {
         List<Point> adjacent = new List<Point>();
@@ -134,10 +156,11 @@ public class LandArea
         CalculateCoast(heightMap);
     }
 
-    private void AddPoint(Point point)
+    private void AddPoint(Point point, bool searchingLand = true)
     {
+        if (searchingLand)
+            landPoints.Add(point);
         searchQueue.Enqueue(point);
-        landPoints.Add(point);
         searchedPoints[point.X, point.Y] = true;
     }
 
