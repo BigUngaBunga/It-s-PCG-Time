@@ -1,17 +1,15 @@
-using Newtonsoft.Json.Linq;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
-using Unity.VisualScripting;
 using UnityEngine;
-using static MazeGen;
+using Random = UnityEngine.Random;
 
-public class Maze
+public class Maze : IComparable
 {
     public enum MazeComponent { Wall, Path, Entrance, Treasure}
 
     public MazeComponent[,] MazeGrid { get; private set; }
-    public static float MutationFrequency;
+    public static float mutationFactor;
     public float Fitness { get; private set; }
 
     public int Width => MazeGrid.GetLength(0);
@@ -31,9 +29,9 @@ public class Maze
     private int numberOfTreasures;
     private int numberOfWalls;
 
-    public Maze(MazeComponent[,] parentA, MazeComponent[,] parentB)
+    public Maze(Maze parentA, Maze parentB, int crossoverStart, int crossoverEnd)
     {
-        CombineAndMutate(parentA, parentB);
+        CombineAndMutate(parentA.MazeGrid, parentB.MazeGrid, crossoverStart, crossoverEnd);
         Evaluate();
     }
 
@@ -83,9 +81,25 @@ public class Maze
         return MazeComponent.Wall;
     }
 
-    private void CombineAndMutate(MazeComponent[,] parentA, MazeComponent[,] parentB)
+    private void CombineAndMutate(MazeComponent[,] parentA, MazeComponent[,] parentB, int crossoverStart, int crossoverEnd)
     {
+        MazeGrid = parentA;
 
+        Point start = new Point(crossoverStart / Width, crossoverStart % Width);
+        Point stop = new Point(crossoverEnd / Width, crossoverEnd % Width);
+        int y = start.Y;
+        bool lastX = false;
+        for (int x = start.X; x < stop.X; x++)
+        {
+            lastX = x + 1 >= stop.X;
+            for (y = y;  y < Height; y++)
+            {
+                MazeGrid[x, y] = Random.value < mutationFactor ? GetRandomComponent(false) : parentB[x, y];
+                if (lastX && y + 1 >= stop.Y)
+                    break;
+            }
+            y = 0;
+        }
     }
 
     private void Evaluate()
@@ -201,32 +215,45 @@ public class Maze
                 passableNeighbours++;
         }
 
-        narrowness += 2 - passableNeighbours;
+        narrowness += 3 - passableNeighbours;
     }
 
     public float CalculateFitness(float pathWeight, float treasureWeight, float treasureDistanceWeight, float narrownessWeight, float reachableWeight)
     {
-        if (numberOfTreasures <= 0 || numberOfEntrances != 1)
-        {
+        Fitness = 0;
+        if (reachableTreasures <= 0 || numberOfEntrances != 1)
             Fitness = -100;
-            return Fitness;
+        else
+        {
+            int unreachablePaths = numberOfPaths - reachablePaths;
+            int unreachableTreasures = numberOfTreasures - reachableTreasures;
+            //Fitness += numberOfWalls;
+
+            Fitness += reachablePaths * reachableWeight;
+            Fitness -= unreachablePaths * reachableWeight;
+
+            Fitness += reachableTreasures * treasureWeight * reachableWeight;
+            Fitness -= unreachableTreasures * treasureWeight * reachableWeight;
+
+            Fitness += narrowness * narrownessWeight;
+
+            foreach (int distance in treasureDistance.Values)
+                Fitness += (distance - (Width + Height) / 4) * treasureDistanceWeight;
+            Fitness -= Mathf.Pow(1.5f, treasureDistance.Count);
         }
 
-        int unreachablePaths = numberOfPaths - reachablePaths;
-        int unreachableTreasures = numberOfTreasures - reachableTreasures;
-
-        Fitness += reachablePaths * pathWeight;
-        Fitness -= unreachablePaths * pathWeight * reachableWeight;
-
-        Fitness += reachableTreasures * treasureWeight;
-        Fitness -= unreachableTreasures * treasureWeight * reachableWeight;
-
-        Fitness += narrowness * narrownessWeight;
-
-        foreach (int distance in treasureDistance.Values)
-            Fitness += (distance - (Width + Height) / 4) * treasureDistanceWeight;
-        Fitness -= Mathf.Pow(1.5f, treasureDistance.Count);
-
         return Fitness;
+    }
+
+    public int CompareTo(object obj)
+    {
+        if (obj is Maze maze)
+        {
+            if (Fitness > maze.Fitness)
+                return -1;
+            if (Fitness == maze.Fitness)
+                return 0;
+        }
+        return 1;
     }
 }
