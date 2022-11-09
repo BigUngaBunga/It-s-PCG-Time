@@ -245,7 +245,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0f0bc1cf7b29664ab201d41072f0c58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mazeSize: 10
+  mazeSize: 12
+  randomSeed: 1
+  seed: 350178088
   populationSize: 100
   maxGenerations: 30
   targetFitness: 100.13

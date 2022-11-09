@@ -19,7 +19,7 @@ public class Maze : IComparable
     private Queue<Point> searchQueue;
     private bool[,] hasBeenSearched;
 
-    private Point entrance;
+    private Point entrance = Point.Empty;
     private int reachablePaths;
     private int reachableTreasures;
     private int narrowness;
@@ -116,25 +116,27 @@ public class Maze : IComparable
         numberOfTreasures = 0;
 
         for (int x = 0; x < Width; x++)
+        {
             for (int y = 0; y < Height; y++)
+            {
                 switch (MazeGrid[x, y])
                 {
                     case MazeComponent.Wall:
-                        numberOfWalls++;
+                        ++numberOfWalls;
                         break;
                     case MazeComponent.Path:
-                        numberOfPaths++;
+                        ++numberOfPaths;
                         break;
                     case MazeComponent.Entrance:
-                        numberOfEntrances++;
+                        ++numberOfEntrances;
                         entrance = new Point(x, y);
                         break;
                     case MazeComponent.Treasure:
-                        numberOfTreasures++;
+                        ++numberOfTreasures;
                         break;
                 }
-
-        
+            }
+        }
     }
 
     //TODO kanske mät mängden avstickande vägar och deras längd
@@ -146,7 +148,12 @@ public class Maze : IComparable
         int distanceFromEntrance = 0;
         int enqueuedPoints = 0;
 
-        AddPointToSearch(entrance, 0);
+        reachablePaths = 0;
+        reachableTreasures = 0;
+        narrowness = 0;
+        if (entrance != Point.Empty)
+            AddPointToSearch(entrance, 0);
+
         while (searchQueue.Count > 0)
         {
             ++distanceFromEntrance;

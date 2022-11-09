@@ -9,14 +9,14 @@ public class MazeGen : MonoBehaviour
     [Header("Maze variables")]
     [Min(5)]
     [SerializeField] private int mazeSize;
+    [SerializeField] private bool randomSeed = true;
+    [SerializeField] private string seed;
+    private List<Maze> bestMazePerGeneration; //TODO spara så att de kan inspekteras efter generering
     private List<Maze> currentGeneration;
-    [SerializeField]private List<Maze> bestMazePerGeneration; //TODO spara så att de kan inspekteras efter generering
 
     //TODO prova att generera en fast position på dörren
 
     [Header("Search variables")]
-    private int generation;
-    private float rankSum;
     [Range(2, 1000)]
     [SerializeField] private int populationSize;
     [SerializeField] private int maxGenerations;
@@ -25,6 +25,8 @@ public class MazeGen : MonoBehaviour
     [SerializeField] private float crossoverPercentage;
     [Range(0, 1)]
     [SerializeField] private float mutationFactor;
+    private int generation;
+    private float rankSum;
 
 
     [Header("Fitness function")]
@@ -48,8 +50,20 @@ public class MazeGen : MonoBehaviour
         }
     }
 
+    private void EvaluateRandomSeed()
+    {
+        if (randomSeed)
+            seed = Random.Range(int.MinValue, int.MaxValue).ToString();
+
+        if (!int.TryParse(seed, out int seedValue))
+            seedValue = seed.GetHashCode();
+       
+        Random.InitState(seedValue);
+    }
+
     private IEnumerator StartNewSearch()
     {
+        EvaluateRandomSeed();
         bestMazePerGeneration = new List<Maze>();
         generation = 1;
         GenerateNewPopulation();
@@ -71,17 +85,22 @@ public class MazeGen : MonoBehaviour
         currentGeneration = new List<Maze>();
         for (int i = 0; i < populationSize; i++)
             currentGeneration.Add(new Maze(mazeSize));
-        rankSum = (populationSize + 1) * populationSize / (float)2;
     }
 
     private void EvaluatePopulation()
     {
+        if (generation == maxGenerations)
+        {
+
+        }
         foreach (var maze in currentGeneration)
             maze.CalculateFitness(pathWeight, treasureWeight, treasureDistanceWeight, narrownessWeight, reachableWeight);
         currentGeneration.Sort();
 
         GetBestAndWorst(out Maze best, out _);
         PrintMaze(best, "Best in generation " + generation);
+        bestMazePerGeneration.Add(best);
+
         Debug.Log("Generation " + generation);
         Debug.Log("The best fitness was: " + GetBestFitness() + " the average was: " + GetAverageFitness());
     }
@@ -114,6 +133,7 @@ public class MazeGen : MonoBehaviour
 
     private Maze GetRankedIndividual()
     {
+        rankSum = (populationSize + 1) * populationSize / (float)2;
         float value = Random.Range(0, rankSum);
         float rank = -0.5f + Mathf.Sqrt(0.25f + value * 2);
         int index = currentGeneration.Count - Mathf.CeilToInt(rank) - 1;
