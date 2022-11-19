@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using Unity.VisualScripting;
 using UnityEngine;
 using Component = Maze.MazeComponent;
 
@@ -21,6 +22,7 @@ public class MazeGen : MonoBehaviour
     [SerializeField] private int populationSize;
     [SerializeField] private int maxGenerations;
     [SerializeField] private float targetFitness;
+    [SerializeField] private int elites = 5;
     [Range(0, 1)]
     [SerializeField] private float crossoverPercentage;
     [Range(0, 1)]
@@ -29,11 +31,8 @@ public class MazeGen : MonoBehaviour
     private float rankSum;
 
 
-    [Header("Fitness function")]
-    [SerializeField] private float pathWeight;
+    [Header("Fitness factors")]
     [SerializeField] private float treasureWeight;
-    [SerializeField] private float treasureDistanceWeight;
-    [SerializeField] private float narrownessWeight;
     [SerializeField] private float reachableWeight;
 
     private void Start()
@@ -43,6 +42,15 @@ public class MazeGen : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            Maze bestMaze = bestMazePerGeneration[bestMazePerGeneration.Count - 1];
+            Maze newMaze = new Maze(bestMaze);
+            newMaze.CalculateFitness(reachableWeight, treasureWeight);
+            newMaze.Print("Noo meez");
+            bestMaze.CalculateFitness(reachableWeight, treasureWeight);
+            bestMaze.Print("Best maze, do include the quotes for more sarcasm");
+        }
         if (Input.GetKeyDown(KeyCode.Space))
         {
             StopAllCoroutines();
@@ -76,8 +84,9 @@ public class MazeGen : MonoBehaviour
             Reproduce();
             EvaluatePopulation();
             yield return null;
-        } while (GetAverageFitness() < targetFitness && generation < maxGenerations);
+        } while (GetBestFitness() < targetFitness && generation < maxGenerations); //  
         Debug.Log("Finished search");
+
     }
 
     private void GenerateNewPopulation()
@@ -87,22 +96,31 @@ public class MazeGen : MonoBehaviour
             currentGeneration.Add(new Maze(mazeSize));
     }
 
+    //TODO kolla på om innehållet ändras eller inte hos elitindividerna
     private void EvaluatePopulation()
     {
-        if (generation == maxGenerations)
+        foreach (var maze in currentGeneration)
         {
+            if (maze.Fitness != 0)
+            {
+
+            }
+
+            float initialFitness = maze.Fitness;
+            float fitness = maze.CalculateFitness(reachableWeight, treasureWeight);
+            if (fitness != initialFitness)
+            {
+                
+            }
 
         }
-        foreach (var maze in currentGeneration)
-            maze.CalculateFitness(pathWeight, treasureWeight, treasureDistanceWeight, narrownessWeight, reachableWeight);
         currentGeneration.Sort();
+        
+        GetBestAndWorst(out Maze bestMaze, out _);
+        bestMaze.Print("Best in generation " + generation);
+        bestMazePerGeneration.Add(bestMaze);
 
-        GetBestAndWorst(out Maze best, out _);
-        PrintMaze(best, "Best in generation " + generation);
-        bestMazePerGeneration.Add(best);
-
-        Debug.Log("Generation " + generation);
-        Debug.Log("The best fitness was: " + GetBestFitness() + " the average was: " + GetAverageFitness());
+        Debug.Log("The best fitness of generation " + generation + " was: " + GetBestFitness() + " the average was: " + GetAverageFitness());
     }
 
     private void Reproduce()
@@ -110,6 +128,13 @@ public class MazeGen : MonoBehaviour
         var nextGeneration = new List<Maze>();
         Maze.mutationFactor = mutationFactor;
         Maze mazeA, mazeB;
+        for (int i = 0; i < elites; i++)
+        {
+            if (i >= currentGeneration.Count)
+                break;
+            nextGeneration.Add(currentGeneration[i]);
+        }
+
         while (nextGeneration.Count < currentGeneration.Count)
         {
 
@@ -118,9 +143,8 @@ public class MazeGen : MonoBehaviour
             if (Random.value < crossoverPercentage)
             {
                 int startIndex = Random.Range(0, mazeB.MazeGrid.Length - 1);
-                int stopIndex = Random.Range(startIndex, mazeB.MazeGrid.Length - 1);
-                nextGeneration.Add(new Maze(mazeA, mazeB, startIndex, stopIndex));
-                nextGeneration.Add(new Maze(mazeB, mazeA, startIndex, stopIndex));
+                nextGeneration.Add(new Maze(mazeA, mazeB, startIndex));
+                nextGeneration.Add(new Maze(mazeB, mazeA, startIndex));
             }
             else
             {
@@ -154,34 +178,5 @@ public class MazeGen : MonoBehaviour
     {
         best = currentGeneration[0];
         worst = currentGeneration[currentGeneration.Count -1];
-    }
-
-    private void PrintMaze(Maze maze, string message)
-    {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.Append(message);
-        for (int x = 0; x < maze.Width; x++)
-        {
-            stringBuilder.AppendLine();
-            for (int y = 0; y < maze.Height; y++)
-            {
-                stringBuilder.Append(GetSymbol(maze.GetValueAt(x, y)));
-                stringBuilder.Append(' ');
-            }
-        }
-
-        Debug.Log(stringBuilder.ToString());
-
-        char GetSymbol(Component component)
-        {
-            return component switch
-            {
-                Component.Wall => 'X',
-                Component.Path => '-',
-                Component.Entrance => 'E',
-                Component.Treasure => 'T',
-                _ => '0',
-            };
-        }
     }
 }
