@@ -78,8 +78,8 @@ public class Maze : IComparable //Monobehaviour
     {
         Evaluate();
         Fitness = 0;
-        //fitnessWall = (2 * reachableWalls - numberOfWalls) * reachableWeight;
-        //fitnessPath = (2 * reachablePaths - numberOfPaths) * reachableWeight;
+        fitnessWall = (2 * reachableWalls - numberOfWalls) * reachableWeight;
+        fitnessPath = (2 * reachablePaths - numberOfPaths) * reachableWeight;
         fitnessTreasure = TreasureDistance * treasureWeight;
         Fitness = fitnessWall + fitnessPath + fitnessTreasure;
         return Fitness;
@@ -114,8 +114,6 @@ public class Maze : IComparable //Monobehaviour
             };
         }
     }
-
-    public void EvaluateAgain() => Evaluate();
 
     private Point GetRandomPoint() => new Point(Random.Range(0, Width), Random.Range(0, Height));
     private MazeComponent GetType(Point point) => GetType(point.X, point.Y);
@@ -159,14 +157,13 @@ public class Maze : IComparable //Monobehaviour
     }
     private void CombineAndMutate(Maze parentA, Maze parentB, int crossoverStart)
     {
-        MazeGrid = parentA.MazeGrid;
+        MazeGrid = (MazeComponent[,])parentA.MazeGrid.Clone();
         Entrance = parentA.Entrance;
         Treasure = parentA.Treasure;
 
-
         Point start = new Point(crossoverStart / Width, crossoverStart % Width);
         int y;
-        int moveDistance = 1;
+        int moveDistance = 3;
         for (int x = start.X; x < Width; x++)
         {
             for (y = start.Y; y < Height; y++)

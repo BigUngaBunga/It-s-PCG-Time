@@ -42,15 +42,6 @@ public class MazeGen : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha0))
-        {
-            Maze bestMaze = bestMazePerGeneration[bestMazePerGeneration.Count - 1];
-            Maze newMaze = new Maze(bestMaze);
-            newMaze.CalculateFitness(reachableWeight, treasureWeight);
-            newMaze.Print("Noo meez");
-            bestMaze.CalculateFitness(reachableWeight, treasureWeight);
-            bestMaze.Print("Best maze, do include the quotes for more sarcasm");
-        }
         if (Input.GetKeyDown(KeyCode.Space))
         {
             StopAllCoroutines();
