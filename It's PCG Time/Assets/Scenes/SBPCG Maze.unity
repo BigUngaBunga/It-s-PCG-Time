@@ -248,14 +248,14 @@ MonoBehaviour:
   mazeSize: 15
   randomSeed: 1
   seed: 350178088
-  populationSize: 250
+  populationSize: 100
   maxGenerations: 250
   targetFitness: 1337
   elites: 0
   crossoverPercentage: 0.755
   mutationFactor: 0.183
   treasureWeight: 16.29
-  reachableWeight: 0.42
+  reachableWeight: 0.45
 --- !u!4 &1746306598
 Transform:
   m_ObjectHideFlags: 0

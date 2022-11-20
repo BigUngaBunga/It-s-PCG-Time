@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -15,6 +16,7 @@ public class MazeGen : MonoBehaviour
     private List<Maze> bestMazePerGeneration; //TODO spara så att de kan inspekteras efter generering
     private List<Maze> currentGeneration;
 
+
     //TODO prova att generera en fast position på dörren
 
     [Header("Search variables")]
@@ -29,23 +31,38 @@ public class MazeGen : MonoBehaviour
     [SerializeField] private float mutationFactor;
     private int generation;
     private float rankSum;
-
+    private bool writeInformation = true;
 
     [Header("Fitness factors")]
     [SerializeField] private float treasureWeight;
     [SerializeField] private float reachableWeight;
+    
+    private float GetBestFitness() => currentGeneration[0].Fitness;
+    private float GetAverageFitness()
+    {
+        float totalFitness = 0;
+        foreach (var maze in currentGeneration)
+            totalFitness += maze.Fitness;
+        return totalFitness / currentGeneration.Count;
+    }
+    private Maze GetBest() => currentGeneration[0];
+    private Maze GetWorst() => currentGeneration[currentGeneration.Count - 1];
 
     private void Start()
     {
         StartCoroutine(StartNewSearch());
     }
-
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
             StopAllCoroutines();
             StartCoroutine(StartNewSearch());
+        }
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            StopAllCoroutines();
+            StartCoroutine(MessureExpressivity());
         }
     }
 
@@ -62,11 +79,15 @@ public class MazeGen : MonoBehaviour
 
     private IEnumerator StartNewSearch()
     {
+        StreamWriter streamWriter = null;
+        if (writeInformation)
+             streamWriter = new StreamWriter("EvolutionMetrics.txt");
         EvaluateRandomSeed();
         bestMazePerGeneration = new List<Maze>();
         generation = 1;
         GenerateNewPopulation();
         EvaluatePopulation();
+        WriteGenerationToFile();
         yield return null;
 
         do
@@ -74,10 +95,22 @@ public class MazeGen : MonoBehaviour
             generation++;
             Reproduce();
             EvaluatePopulation();
-            yield return null;
+            WriteGenerationToFile();
+            if (writeInformation)
+                yield return null;
         } while (GetBestFitness() < targetFitness && generation < maxGenerations); //  
-        Debug.Log("Finished search");
 
+        if (writeInformation)
+        {
+            Debug.Log("Finished search");
+            streamWriter.Close();
+        }
+
+        void WriteGenerationToFile()
+        {
+            if (streamWriter != null)
+                streamWriter.WriteLine($"Generation {generation}, Best: {GetBest().Fitness}, Average: {GetAverageFitness()}, Worst: {GetWorst().Fitness}");
+        }
     }
 
     private void GenerateNewPopulation()
@@ -87,31 +120,16 @@ public class MazeGen : MonoBehaviour
             currentGeneration.Add(new Maze(mazeSize));
     }
 
-    //TODO kolla på om innehållet ändras eller inte hos elitindividerna
     private void EvaluatePopulation()
     {
         foreach (var maze in currentGeneration)
-        {
-            if (maze.Fitness != 0)
-            {
-
-            }
-
-            float initialFitness = maze.Fitness;
-            float fitness = maze.CalculateFitness(reachableWeight, treasureWeight);
-            if (fitness != initialFitness)
-            {
-                
-            }
-
-        }
+            maze.CalculateFitness(reachableWeight, treasureWeight);
         currentGeneration.Sort();
-        
-        GetBestAndWorst(out Maze bestMaze, out _);
-        bestMaze.Print("Best in generation " + generation);
-        bestMazePerGeneration.Add(bestMaze);
 
-        Debug.Log("The best fitness of generation " + generation + " was: " + GetBestFitness() + " the average was: " + GetAverageFitness());
+        var bestMaze = GetBest();
+        if (writeInformation)
+            bestMaze.Print("Best in generation " + generation);
+        bestMazePerGeneration.Add(bestMaze);
     }
 
     private void Reproduce()
@@ -155,19 +173,44 @@ public class MazeGen : MonoBehaviour
         return currentGeneration[Mathf.Max(0, index)];
     }
 
-    private float GetBestFitness() => currentGeneration[0].Fitness;
-
-    private float GetAverageFitness()
+    private IEnumerator MessureExpressivity()
     {
-        float totalFitness = 0;
-        foreach (var maze in currentGeneration)
-            totalFitness += maze.Fitness;
-        return totalFitness / currentGeneration.Count;
-    }
+        int numberOfSearches = 1000;
+        int expressivityDetail = 20;
+        int[] narrowness = new int[expressivityDetail];
+        int[] branching = new int[expressivityDetail];
 
-    private void GetBestAndWorst(out Maze best, out Maze worst)
-    {
-        best = currentGeneration[0];
-        worst = currentGeneration[currentGeneration.Count -1];
+        writeInformation = false;
+        for (int i = 0; i < numberOfSearches; i++)
+        {
+            StartCoroutine(StartNewSearch());
+            AddExpressivity(GetBest().GetExpressivity());
+            Debug.Log("Calculated " + (i + 1) + " out of " + numberOfSearches);
+            yield return null;
+        }
+        Debug.Log("Finished mesuring expressivity");
+        using (var streamWriter = new StreamWriter("Expressivity.txt"))
+        {
+            for (int i = 0; i < narrowness.Length; i++)
+            {
+                streamWriter.Write(narrowness[i]);
+                streamWriter.Write(" ");
+            }
+            streamWriter.WriteLine();
+            for (int i = 0; i < branching.Length; i++)
+            {
+                streamWriter.Write(branching[i]);
+                streamWriter.Write(" ");
+            }
+        }
+        writeInformation = true;
+
+        void AddExpressivity(Vector2 expressivity)
+        {
+            int narrowIndex = (int)(expressivity.x * narrowness.Length);
+            int branchIndex = (int)(expressivity.y * branching.Length); ;
+            narrowness[narrowIndex]++;
+            branching[branchIndex]++;
+        }
     }
 }

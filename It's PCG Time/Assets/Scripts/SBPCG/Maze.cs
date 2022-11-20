@@ -1,21 +1,17 @@
-using Newtonsoft.Json.Bson;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
-using UnityEditor.VersionControl;
 using UnityEngine;
-using Color = UnityEngine.Color;
 using Random = UnityEngine.Random;
 
-public class Maze : IComparable //Monobehaviour
+public class Maze : IComparable
 {
     public enum MazeComponent { Wall, Path, Entrance, Treasure}
 
-    public MazeComponent[,] MazeGrid { get; private set; }
-
     public static float mutationFactor;
+
+    public MazeComponent[,] MazeGrid { get; private set; }
     public float Fitness { get; private set; }
     public int Width => MazeGrid.GetLength(0);
     public int Height => MazeGrid.GetLength(1);
@@ -27,22 +23,14 @@ public class Maze : IComparable //Monobehaviour
     private Point Treasure { get; set; }
 
     private int numberOfPaths;
-    private int numberOfWalls;
-    private int treasureDistance = -10;
-    private int TreasureDistance
-    {
-        get { return treasureDistance; }
-        set { treasureDistance = value; }
-    }
     private int reachablePaths;
+    private int numberOfWalls;
     private int reachableWalls;
+    private int treasureDistance = -10;
 
     private float fitnessWall;
     private float fitnessPath;
     private float fitnessTreasure;
-
-    //DEBUG BOOL
-    private bool drawGizmos;
 
     public Maze(Maze parentA, Maze parentB, int crossoverStart)
     {
@@ -80,7 +68,7 @@ public class Maze : IComparable //Monobehaviour
         Fitness = 0;
         fitnessWall = (2 * reachableWalls - numberOfWalls) * reachableWeight;
         fitnessPath = (2 * reachablePaths - numberOfPaths) * reachableWeight;
-        fitnessTreasure = TreasureDistance * treasureWeight;
+        fitnessTreasure = treasureDistance * treasureWeight;
         Fitness = fitnessWall + fitnessPath + fitnessTreasure;
         return Fitness;
     }
@@ -214,7 +202,7 @@ public class Maze : IComparable //Monobehaviour
         int distanceFromEntrance = 0;
         reachablePaths = 0;
         reachableWalls = 0;
-        TreasureDistance = -10;
+        treasureDistance = -10;
         AddPointToSearch(Entrance, 0);
 
         while (searchQueue.Count > 0)
@@ -247,7 +235,7 @@ public class Maze : IComparable //Monobehaviour
         if (type == MazeComponent.Path)
             ++reachablePaths;
         else if (type == MazeComponent.Treasure)
-            TreasureDistance = distanceFromEntrance;
+            treasureDistance = distanceFromEntrance;
     }
     private List<Point> GetNeumannAdjacent(Point currentPoint)
     {
@@ -269,54 +257,61 @@ public class Maze : IComparable //Monobehaviour
         }
     }
 
-    #region DrawDebug
-
-    private void OnDrawGizmos()
+    #region Expressivity
+    public Vector2 GetExpressivity()
     {
-        if (drawGizmos)
+        int searchedTiles = 0;
+        int branches = 0;
+        float narrowness = 0;
+        float branching = 0;
+        hasBeenSearched = new bool[Width, Height];
+        searchQueue = new Queue<Point>();
+        AddPointToSearch(Entrance, 0);
+
+        while (searchQueue.Count > 0)
         {
-            float radius = 0.25f;
-            for (int x = 0; x < Width; x++)
+            int currentCount = searchQueue.Count;
+            for (int i = 0; i < currentCount; i++)
             {
-                for (int y = 0; y < Height; y++)
+                searchedTiles++;
+                Point currentPoint = searchQueue.Dequeue();
+                var adjacent = GetNeumannAdjacent(currentPoint);
+                narrowness += GetNarrowness(adjacent);
+                if (IsDeadEnd(adjacent))
+                    branches++;
+                foreach (var point in adjacent)
                 {
-                    Gizmos.color = GetDrawColour(x, y);
-                    Vector3 position = new Vector3(x, 0, y);
-                    Vector3 boxPosition = new Vector3(x, 1, y);
-                    Gizmos.DrawSphere(position, radius);
-                    if (hasBeenSearched[x, y])
-                        Gizmos.DrawCube(boxPosition, Vector3.one * radius);
+                    if (!hasBeenSearched[point.X, point.Y])
+                    {
+                        hasBeenSearched[point.X, point.Y] = true;
+                        if (GetType(point) != MazeComponent.Wall)
+                            searchQueue.Enqueue(point);
+                    }
                 }
             }
         }
+
+        narrowness /= searchedTiles * 2;
+        branching = (branches * 2) / (float)searchedTiles;
+        return new Vector2(narrowness, branching);
     }
 
-    private Color GetDrawColour(int x, int y)
+    private int GetNarrowness(List<Point> neighbours)
     {
-        return GetType(x, y) switch
-        {
-            MazeComponent.Wall => Color.gray,
-            MazeComponent.Path => Color.white,
-            MazeComponent.Entrance => Color.green,
-            MazeComponent.Treasure => Color.yellow,
-            _ => Color.red,
-        };
+        int adjacentWalls = 0;
+        for (int i = 0; i < neighbours.Count; i++)
+            if (GetType(neighbours[i]) == MazeComponent.Wall)
+                adjacentWalls++;
+        return Mathf.Min(adjacentWalls, 2);
     }
 
+    private bool IsDeadEnd(List<Point> neighbours)
+    {
+        int adjacentNonWall = 0;
+        for (int i = 0; i < neighbours.Count; i++)
+            if (GetType(neighbours[i]) != MazeComponent.Wall)
+                adjacentNonWall++;
+        return adjacentNonWall <= 1;
+    }
     #endregion
-
-    //private void MeasureNarrowness(Point startPoint, List<Point> adjacent)
-    //{
-    //    int passableNeighbours = 0;
-    //    foreach (var neighbour in adjacent)
-    //    {
-    //        var type = GetType(neighbour);
-    //        if (type == MazeComponent.Path || type == MazeComponent.Treasure)
-    //            passableNeighbours++;
-    //    }
-
-    //    narrowness += 3 - passableNeighbours;
-    //}
-
-    //TODO för expressivity beräkna mängden avstickande vägar och hur breda gångarna är
 }
