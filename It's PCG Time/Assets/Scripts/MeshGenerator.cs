@@ -15,7 +15,7 @@ public class MeshGenerator : MonoBehaviour
     private MeshFilter meshFilter;
     private bool debug;
 
-    private void Start()
+    private void Awake()
     {
         meshFilter = GetComponent<MeshFilter>();
     }

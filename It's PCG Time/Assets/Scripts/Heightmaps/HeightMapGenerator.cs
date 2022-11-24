@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class HeightMapGenerator : MonoBehaviour
 {
-    enum GenerationMethod { DiamondSquare, PerlinNoise, ReversePerlin, Debug}
+    enum GenerationMethod { DiamondSquare, PerlinNoise, Debug}
 
     [Header("Generation")]
     [SerializeField] private GenerationMethod method;
@@ -36,9 +36,13 @@ public class HeightMapGenerator : MonoBehaviour
     private MeshGenerator meshGenerator;
     private Vector2 adjustedMeshSize;
 
-    private void Start()
+    private void Awake()
     {
         meshGenerator = gameObject.AddComponent<MeshGenerator>();
+    }
+
+    private void Start()
+    {
         interpolator = GetComponent<Interpolator>();
         diamondSquare = new DiamondSquareAlgorithm();
         perlinNoise = new PerlinNoise();
