@@ -19,8 +19,8 @@ public class Maze : IComparable
     private Queue<Point> searchQueue;
     private bool[,] hasBeenSearched;
 
-    private Point Entrance { get; set; }
-    private Point Treasure { get; set; }
+    public Point Entrance { get; private set; }
+    public Point Treasure { get; private set; }
 
     private int numberOfPaths;
     private int reachablePaths;
@@ -101,6 +101,24 @@ public class Maze : IComparable
                 _ => '0',
             };
         }
+    }
+
+    public float[,] GetHeightMap()
+    {
+        float[,] heightMap = new float[Width, Height];
+        int currentHeight = 0;
+        for (int x = 0; x < MazeGrid.GetLength(0); x++)
+        {
+            for (int y = 0; y < MazeGrid.GetLength(1); y++)
+            {
+                currentHeight = MazeGrid[x,y] == MazeComponent.Wall ? 5 : 0;
+                if (EqualsPoint(x, y, Entrance) || EqualsPoint(x, y, Treasure))
+                    currentHeight = 0;
+                heightMap[x,y] = currentHeight;
+            }
+        }
+
+        return heightMap;
     }
 
     private Point GetRandomPoint() => new Point(Random.Range(0, Width), Random.Range(0, Height));

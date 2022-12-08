@@ -4,6 +4,8 @@ public class Interpolator : MonoBehaviour
 {
     public enum InterpolationMethod { Bilinear, Bicubic, Cosine, None }
 
+    public float Detail => detail;
+
     [SerializeField] private InterpolationMethod method;
     [Range(1, 10)]
     [SerializeField] private int detail = 1;
@@ -43,11 +45,14 @@ public class Interpolator : MonoBehaviour
         float dWidth, dHeight;
         float dX, dY;
 
-        if (method == InterpolationMethod.None)
-            return heightMap;
-
         dWidth = interpolation.GetLength(0) / (float)(heightMap.GetLength(0) - 1);
         dHeight = interpolation.GetLength(1) / (float)(heightMap.GetLength(1) - 1);
+        if (method == InterpolationMethod.None)
+        {
+            dWidth = interpolation.GetLength(0) / (float)(heightMap.GetLength(0));
+            dHeight = interpolation.GetLength(1) / (float)(heightMap.GetLength(1));
+        }
+
 
         for (int x = 0; x < interpolation.GetLength(0); x++)
         {
@@ -69,6 +74,8 @@ public class Interpolator : MonoBehaviour
 
     float GetInterpolation(int x, int y, float dX, float dY)
     {
+        if (method == InterpolationMethod.None)
+            return heightMap[x, y];
         float value = InterpolateX(x, y, dX, dY);
         value += InterpolateY(x, y, dX, dY);
         value /= 2f;

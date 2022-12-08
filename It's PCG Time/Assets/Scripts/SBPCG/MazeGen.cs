@@ -36,7 +36,14 @@ public class MazeGen : MonoBehaviour
     [Header("Fitness factors")]
     [SerializeField] private float treasureWeight;
     [SerializeField] private float reachableWeight;
-    
+
+    [Header("Representation")]
+    [SerializeField] private GameObject entrancePrefab;
+    [SerializeField] private GameObject treasurePrefab;
+    private MeshGenerator meshGenerator;
+    private Interpolator interpolator;
+    private List<GameObject> gameObjects = new List<GameObject>();
+
     private float GetBestFitness() => currentGeneration[0].Fitness;
     private float GetAverageFitness()
     {
@@ -50,6 +57,8 @@ public class MazeGen : MonoBehaviour
 
     private void Start()
     {
+        meshGenerator = gameObject.AddComponent<MeshGenerator>();
+        interpolator = GetComponent<Interpolator>();
         StartCoroutine(StartNewSearch());
     }
     private void Update()
@@ -79,6 +88,11 @@ public class MazeGen : MonoBehaviour
 
     private IEnumerator StartNewSearch()
     {
+        for (int i = gameObjects.Count - 1; i >= 0; i--)
+        {
+            Destroy(gameObjects[i]);
+            gameObjects.RemoveAt(i);
+        }
         StreamWriter streamWriter = null;
         if (writeInformation)
              streamWriter = new StreamWriter("EvolutionMetrics.txt");
@@ -105,6 +119,20 @@ public class MazeGen : MonoBehaviour
             Debug.Log("Finished search");
             streamWriter.Close();
         }
+
+        Maze bestMaze = GetBest();
+        float[,] heightMap = interpolator.Interpolate(bestMaze.GetHeightMap());
+        float scale = 100f;
+        Vector2 targetSize = new Vector2(scale, scale);
+        var entrance = meshGenerator.GetPosition(heightMap, targetSize, bestMaze.Entrance.X * (int)interpolator.Detail, bestMaze.Entrance.Y * (int)interpolator.Detail);
+        var treasure = meshGenerator.GetPosition(heightMap, targetSize, bestMaze.Treasure.X * (int)interpolator.Detail, bestMaze.Treasure.Y * (int)interpolator.Detail);
+
+        meshGenerator.CreateMesh(heightMap, targetSize);
+        gameObjects.Add(Instantiate(entrancePrefab, entrance, Quaternion.identity, transform));
+        gameObjects.Add(Instantiate(treasurePrefab, treasure, Quaternion.identity, transform));
+        for (int i = 0; i < gameObjects.Count; i++)
+            gameObjects[i].transform.localPosition = new Vector3(gameObjects[i].transform.localPosition.x, 3, gameObjects[i].transform.localPosition.z);
+
 
         void WriteGenerationToFile()
         {

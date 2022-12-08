@@ -226,6 +226,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1746306598}
   - component: {fileID: 1746306597}
+  - component: {fileID: 1746306601}
+  - component: {fileID: 1746306600}
+  - component: {fileID: 1746306599}
   m_Layer: 0
   m_Name: MazeGenerator
   m_TagString: Untagged
@@ -256,6 +259,8 @@ MonoBehaviour:
   mutationFactor: 0.183
   treasureWeight: 16.29
   reachableWeight: 0.45
+  entrancePrefab: {fileID: 521473770106666275, guid: 817424ed098eb86459c5143d53adec18, type: 3}
+  treasurePrefab: {fileID: 4865600001555932735, guid: 034e5c0e477dcd046bc446f99e52cc26, type: 3}
 --- !u!4 &1746306598
 Transform:
   m_ObjectHideFlags: 0
@@ -270,6 +275,70 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &1746306599
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746306596}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 4923ab8c1fc75a34db1b5dd43b9b576f, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1746306600
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746306596}
+  m_Mesh: {fileID: 0}
+--- !u!114 &1746306601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746306596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bad515f634c23844897b443aa6e00252, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  method: 3
+  detail: 2
 --- !u!1 &1897420189
 GameObject:
   m_ObjectHideFlags: 0

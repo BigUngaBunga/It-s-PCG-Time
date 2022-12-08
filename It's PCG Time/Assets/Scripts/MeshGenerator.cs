@@ -1,10 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.UIElements;
-using static MeshGenerator;
 
 public class MeshGenerator : MonoBehaviour
 {
@@ -17,7 +14,10 @@ public class MeshGenerator : MonoBehaviour
 
     private void Awake()
     {
-        meshFilter = GetComponent<MeshFilter>();
+        if (!TryGetComponent(out meshFilter))
+        {
+            meshFilter = gameObject.AddComponent<MeshFilter>();
+        }
     }
 
     private void Write(string text)
@@ -48,6 +48,13 @@ public class MeshGenerator : MonoBehaviour
             biggerMap[newX, newY+1] = height;
             biggerMap[newX+1, newY+1] = height;
         }
+    }
+
+    public Vector3 GetPosition(float[,] heightMap, Vector2 targetSize, int x, int y)
+    {
+        Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
+        Vector3 scale = new Vector2(targetSize.x / size.X, targetSize.y / size.Y);
+        return new Vector3((x - size.X / 2f) * scale.x, heightMap[x, y], (y - size.Y / 2f) * scale.y);
     }
 
     public void CreateMesh(float[,] heightMap, Vector2 targetSize)
@@ -100,42 +107,14 @@ public class MeshGenerator : MonoBehaviour
 
         for (int x = 0; x < size.X; x++)
             for (int y = 0; y < size.Y; y++)
-            {
                 vertecies.Add(new Vector3((x - size.X / 2f) * scale.x, heightMap[x, y], (y - size.Y / 2f) * scale.y));
-                //if (type == HeightMapType.Point)
-                    
-                //else //TODO se över att göra på detta sätt
-                //    AddQuad(x, y, heightMap[x, y]);
-            }
-        return vertecies;
 
-        void AddQuadVertex(int x, int y, float height)
-        {
-            if (x < size.X && y < size.Y)
-                height = (height + heightMap[x, y]) / 2f;
-            vertecies.Add(new Vector3((x - size.X / 2f) * scale.x, height, (y - size.Y / 2f) * scale.y));
-        }
-        void AddQuad(int x, int y, float height, bool forceReturn = false)
-        {
-            if (!forceReturn && x > 0)
-                AddQuad(x, y, heightMap[x-1, y], true);
-            AddQuadVertex(x, y, height);
-            AddQuadVertex(x + 1, y, height);
-        }
+        return vertecies;
     }
 
     private Vector2[] GetUvs(List<Vector3> vertecies, float[,] heightMap, Vector2 targetSize)
     {
         List<Vector2> uvs = new List<Vector2>();
-        //Point size = new Point(heightMap.GetLength(0), heightMap.GetLength(1));
-        //Vector2 scale = new Vector2(targetSize.x / size.X, targetSize.y / size.Y);
-
-        //for (int x = 0; x < size.X; x++)
-        //    for (int y = 0; y < size.Y; y++)
-        //    {
-        //        var vertex = new Vector2((x - size.X / 2f) * scale.x, (y - size.Y / 2f) * scale.y);
-        //        uvs.Add(new Vector2(vertex.x, vertex.y));
-        //    }
 
         for (int i = 0; i < vertecies.Count; i++)
         {
